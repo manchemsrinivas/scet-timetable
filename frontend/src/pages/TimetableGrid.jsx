@@ -141,7 +141,7 @@ const TimetableGrid = () => {
         type: item.isLab ? 'Lab' : 'Subject',
         subject: item.name,
         faculty: item.faculty ? { _id: item.faculty._id, name: item.faculty.name } : null,
-        lab: item.lab ? item.lab.name : null
+        lab: item.lab ? { _id: item.lab._id, name: item.lab.name } : null
       };
       targetDayObj.periods.push(newSlot);
 
@@ -325,7 +325,7 @@ const TimetableGrid = () => {
                               >
                                 <div className="slot-subject font-bold">{slot.subject}</div>
                                 {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
-                                {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{slot.lab}</div>}
+                                {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
                                 <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
                               </div>
                             ) : (

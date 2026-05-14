@@ -14,6 +14,7 @@ const AdminDashboard = () => {
     if (path.includes('/admin/labs')) return 'labs';
     if (path.includes('/admin/timetables')) return 'timetables';
     if (path.includes('/admin/faculty-timetables')) return 'faculty-timetables';
+    if (path.includes('/admin/lab-venue-timetables')) return 'lab-venue-timetables';
     return 'submissions';
   };
 
@@ -30,22 +31,21 @@ const AdminDashboard = () => {
       mapping: '/admin/mapping',
       labs: '/admin/labs',
       timetables: '/admin/timetables',
-      'faculty-timetables': '/admin/faculty-timetables'
+      'faculty-timetables': '/admin/faculty-timetables',
+      'lab-venue-timetables': '/admin/lab-venue-timetables'
     };
     navigate(pathMap[tabId] || '/admin');
   };
-  const [data, setData] = useState({
-    submissions: [],
-    sections: [],
-    mappings: [],
-    labs: [],
     labMappings: [],
     approvedFaculty: [],
+    venues: [],
     selectedDept: 'All'
   });
   const [loading, setLoading] = useState(true);
   const [selectedFacultyId, setSelectedFacultyId] = useState('');
   const [facultyScheduleData, setFacultyScheduleData] = useState(null);
+  const [selectedVenueName, setSelectedVenueName] = useState('');
+  const [venueScheduleData, setVenueScheduleData] = useState(null);
   const [deptFilter, setDeptFilter] = useState('All');
   const [isGenerating, setIsGenerating] = useState(false);
   const [gaConfig, setGaConfig] = useState({
@@ -124,6 +124,26 @@ const AdminDashboard = () => {
       fetchFacultySchedule(selectedFacultyId);
     }
   }, [selectedFacultyId]);
+
+  const fetchVenueSchedule = async (venueName) => {
+    if (!venueName) {
+      setVenueScheduleData(null);
+      return;
+    }
+    try {
+      const res = await api.get(`/admin/venue-timetable/${encodeURIComponent(venueName)}`);
+      setVenueScheduleData(res.data.schedule);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to fetch venue timetable');
+    }
+  };
+
+  useEffect(() => {
+    if (selectedVenueName) {
+      fetchVenueSchedule(selectedVenueName);
+    }
+  }, [selectedVenueName]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -290,6 +310,7 @@ const AdminDashboard = () => {
         <TabBtn id="labs" label="Lab Mapping" active={activeTab} set={handleTabChange} icon={<FlaskConical size={16}/>} />
         <TabBtn id="timetables" label="Timetables" active={activeTab} set={handleTabChange} icon={<CalendarDays size={16}/>} />
         <TabBtn id="faculty-timetables" label="Faculty Timetables" active={activeTab} set={handleTabChange} icon={<Users size={16}/>} />
+        <TabBtn id="lab-venue-timetables" label="Lab Venue Timetables" active={activeTab} set={handleTabChange} icon={<FlaskConical size={16}/>} />
       </div>
 
       <div className="tab-pane mt-6">
@@ -807,6 +828,85 @@ const AdminDashboard = () => {
             </div>
             );
             })()}
+          </div>
+        {activeTab === 'lab-venue-timetables' && (
+          <div className="card">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold">Lab Venue Timetables</h3>
+              <select 
+                className="select" 
+                style={{ width: '300px' }}
+                value={selectedVenueName}
+                onChange={(e) => setSelectedVenueName(e.target.value)}
+              >
+                <option value="">Select Lab Venue...</option>
+                {data.venues.map(v => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            {!selectedVenueName && (
+              <div className="text-center py-20 text-muted">
+                <FlaskConical size={48} className="mx-auto mb-4 opacity-20" />
+                <p>Select a lab venue to view its occupied slots across all sections</p>
+              </div>
+            )}
+
+            {selectedVenueName && venueScheduleData && (
+              <div className="mt-8">
+                <div className="table-container" style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+                  <table className="table venue-grid-table" style={{ minWidth: '800px', width: '100%', tableLayout: 'fixed' }}>
+                    <thead>
+                      <tr>
+                        <th style={{ width: '120px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>Day / Period</th>
+                        {[1, 2, 3, 4, 5, 6, 7].map(p => (
+                          <th key={p} style={{ textAlign: 'center', borderRight: p !== 7 ? '1px solid var(--border)' : 'none' }}>Period {p}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {venueScheduleData.map((dayData, idx) => (
+                        <tr key={idx}>
+                          <td className="font-bold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', background: 'var(--bg-main)' }}>
+                            {dayData.day}
+                          </td>
+                          {dayData.periods.map((period, pIdx) => (
+                            <td key={pIdx} style={{ padding: '0.5rem', height: '100px', borderRight: pIdx !== 6 ? '1px solid var(--border)' : 'none', verticalAlign: 'middle' }}>
+                              {period.type === 'Lab' ? (
+                                <div 
+                                  style={{ 
+                                    backgroundColor: 'rgba(245, 158, 11, 0.15)', 
+                                    height: '100%',
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    borderRadius: 'var(--radius-md)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.25rem',
+                                    border: '1px solid rgba(245, 158, 11, 0.3)'
+                                  }}
+                                >
+                                  <span className="font-bold text-sm" style={{ textAlign: 'center', lineHeight: '1.2', color: 'var(--warning-dark)' }}>
+                                    {period.lab}
+                                  </span>
+                                  <span className="badge badge-primary text-xs mt-1" style={{ fontSize: '10px' }}>{period.section}</span>
+                                  <span className="text-xs font-semibold mt-1" style={{ color: 'var(--text-main)', opacity: 0.8 }}>{period.faculty}</span>
+                                </div>
+                              ) : (
+                                <div className="text-muted text-xs" style={{ textAlign: 'center', opacity: 0.3 }}>VACANT</div>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

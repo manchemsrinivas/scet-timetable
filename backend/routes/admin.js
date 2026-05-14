@@ -40,6 +40,9 @@ router.get('/dashboard', ensureAdmin, async (req, res) => {
             .populate('section', 'name');
 
         const approvedFaculty = await Willingness.find({ ...query, status: 'Approved' }).populate('faculty', 'name');
+        
+        // Get unique venues
+        const venues = await LabMapping.distinct('labVenue', department !== 'All' ? { department } : {});
 
         res.json({ 
             submissions, 
@@ -48,6 +51,7 @@ router.get('/dashboard', ensureAdmin, async (req, res) => {
             labs,
             labMappings,
             approvedFaculty,
+            venues,
             selectedDept: department || 'All' 
         });
     } catch (err) {
@@ -382,6 +386,70 @@ router.get('/faculty-timetable/:facultyId', ensureAdmin, async (req, res) => {
         });
 
         res.json({ success: true, schedule: facultySchedule });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server Error' });
+    }
+});
+
+// Get Lab Venue Timetable
+router.get('/venue-timetable/:venueName', ensureAdmin, async (req, res) => {
+    try {
+        const { venueName } = req.params;
+        
+        // Find all lab mappings for this venue
+        const venueMappings = await LabMapping.find({ labVenue: venueName })
+            .populate('lab', 'name')
+            .populate('section', 'name department')
+            .populate('faculty', 'name');
+
+        const timetables = await Timetable.find().populate('section', 'name department');
+        
+        let venueSchedule = [];
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        
+        days.forEach(day => {
+            let dailyPeriods = [];
+            for (let i = 1; i <= 7; i++) {
+                dailyPeriods.push({ period: i, type: 'Free', subject: '-', faculty: null, lab: null, section: null });
+            }
+            venueSchedule.push({ day, periods: dailyPeriods });
+        });
+
+        // Loop through section timetables
+        timetables.forEach(timetable => {
+            const sectionId = timetable.section._id.toString();
+            
+            timetable.schedule.forEach(daySchedule => {
+                const vDay = venueSchedule.find(d => d.day === daySchedule.day);
+                if (!vDay) return;
+
+                daySchedule.periods.forEach(period => {
+                    if (period.type !== 'Lab' || !period.lab) return;
+
+                    // Check if this lab session belongs to this venue
+                    const labId = (typeof period.lab === 'object' ? (period.lab._id || period.lab.id) : period.lab)?.toString();
+                    
+                    const mapping = venueMappings.find(m => 
+                        m.section._id.toString() === sectionId && 
+                        m.lab._id.toString() === labId
+                    );
+
+                    if (mapping) {
+                        const vPeriod = vDay.periods.find(p => p.period === period.period);
+                        if (vPeriod) {
+                            vPeriod.type = 'Lab';
+                            vPeriod.subject = mapping.lab.name;
+                            vPeriod.lab = mapping.lab.name;
+                            vPeriod.faculty = mapping.faculty.name;
+                            vPeriod.section = `${timetable.section.department}-${timetable.section.name}`;
+                        }
+                    }
+                });
+            });
+        });
+
+        res.json({ success: true, schedule: venueSchedule });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Server Error' });
