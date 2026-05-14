@@ -199,8 +199,8 @@ router.post('/mappings/delete/:id', ensureAdmin, async (req, res) => {
 // Create Lab Mapping
 router.post('/lab-mappings', ensureAdmin, async (req, res) => {
     try {
-        const { facultyId, labId, sectionId, department } = req.body;
-        const mapping = new LabMapping({ faculty: facultyId, lab: labId, section: sectionId, department });
+        const { facultyId, labId, sectionId, department, labVenue } = req.body;
+        const mapping = new LabMapping({ faculty: facultyId, lab: labId, section: sectionId, department, labVenue });
         await mapping.save();
         res.json({ success: true, mapping });
     } catch (err) {

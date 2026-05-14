@@ -69,7 +69,9 @@ const AdminDashboard = () => {
   const [labMappingForm, setLabMappingForm] = useState({
     facultyId: '',
     labId: '',
-    sectionId: ''
+    sectionId: '',
+    labVenue: '',
+    customLabVenue: ''
   });
   
   const [selectedSubjects, setSelectedSubjects] = useState({});
@@ -208,16 +210,20 @@ const AdminDashboard = () => {
 
   const handleLabMappingSubmit = async (e) => {
     e.preventDefault();
-    if (!labMappingForm.facultyId || !labMappingForm.labId || !labMappingForm.sectionId) {
+    const finalVenue = labMappingForm.labVenue === 'custom' ? labMappingForm.customLabVenue : labMappingForm.labVenue;
+    if (!labMappingForm.facultyId || !labMappingForm.labId || !labMappingForm.sectionId || !finalVenue) {
       return alert('Please fill all fields');
     }
     try {
       const selectedLab = data.labs.find(l => l._id === labMappingForm.labId);
       await api.post('/admin/lab-mappings', {
-        ...labMappingForm,
+        facultyId: labMappingForm.facultyId,
+        labId: labMappingForm.labId,
+        sectionId: labMappingForm.sectionId,
+        labVenue: finalVenue,
         department: selectedLab?.department
       });
-      setLabMappingForm({ facultyId: '', labId: '', sectionId: '' });
+      setLabMappingForm({ facultyId: '', labId: '', sectionId: '', labVenue: '', customLabVenue: '' });
       fetchDashboardData();
       alert('Lab mapping created successfully');
     } catch (err) {
@@ -553,6 +559,31 @@ const AdminDashboard = () => {
                       {data.sections.map(s => <option key={s._id} value={s._id}>{s.department} - {s.name}</option>)}
                     </select>
                   </div>
+                  <div className="form-group">
+                    <label className="label">Lab Venue</label>
+                    <select 
+                      className="select mb-2"
+                      value={labMappingForm.labVenue}
+                      onChange={(e) => setLabMappingForm({...labMappingForm, labVenue: e.target.value})}
+                    >
+                      <option value="">Select Venue...</option>
+                      <option value="CSE Lab 1">CSE Lab 1</option>
+                      <option value="CSE Lab 2">CSE Lab 2</option>
+                      <option value="CSE Lab 3">CSE Lab 3</option>
+                      <option value="ECE Lab 1">ECE Lab 1</option>
+                      <option value="ECE Lab 2">ECE Lab 2</option>
+                      <option value="custom" className="text-primary font-bold">+ Add Custom Venue</option>
+                    </select>
+                    {labMappingForm.labVenue === 'custom' && (
+                      <input 
+                        type="text" 
+                        className="input" 
+                        placeholder="Type new venue name..."
+                        value={labMappingForm.customLabVenue}
+                        onChange={(e) => setLabMappingForm({...labMappingForm, customLabVenue: e.target.value})}
+                      />
+                    )}
+                  </div>
                   <button className="btn btn-primary w-full">Save Lab Assignment</button>
                 </form>
               </div>
@@ -563,13 +594,14 @@ const AdminDashboard = () => {
                 <h4 className="font-bold mb-4">Active Lab Mappings</h4>
                 <div className="table-container">
                   <table className="table">
-                    <thead><tr><th>Faculty</th><th>Lab</th><th>Section</th><th className="text-end">Action</th></tr></thead>
+                    <thead><tr><th>Faculty</th><th>Lab</th><th>Section</th><th>Venue</th><th className="text-end">Action</th></tr></thead>
                     <tbody>
                       {data.labMappings.map(m => (
                         <tr key={m._id}>
                           <td>{m.faculty?.name}</td>
                           <td><span className="badge badge-warning">{m.lab?.name}</span></td>
                           <td>{m.section?.name}</td>
+                          <td><span className="badge badge-outline text-muted">{m.labVenue}</span></td>
                           <td className="text-end">
                             <button 
                               type="button"
