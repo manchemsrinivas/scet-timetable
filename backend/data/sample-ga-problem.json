@@ -1,0 +1,43 @@
+{
+  "days": 5,
+  "slotsPerDay": 8,
+  "dayLabels": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  "periodLabels": [1, 2, 3, 4, 5, 6, 7, 8],
+  "sectionIds": ["sec-a"],
+  "faculty": [
+    {
+      "id": "fac-1",
+      "preferenceSubjectIds": ["sub-ds"]
+    },
+    {
+      "id": "fac-2",
+      "preferenceSubjectIds": ["sub-db"]
+    }
+  ],
+  "subjects": [
+    { "id": "sub-ds", "sectionId": "sec-a", "maxSlotsPerWeek": 5 },
+    { "id": "sub-db", "sectionId": "sec-a", "maxSlotsPerWeek": 5 },
+    { "id": "sub-dslab", "sectionId": "sec-a", "maxSlotsPerWeek": 5 }
+  ],
+  "labs": [
+    {
+      "id": "lab-1",
+      "sectionId": "sec-a",
+      "subjectId": "sub-dslab",
+      "facultyId": "fac-1",
+      "roomId": "room-lab-1"
+    }
+  ],
+  "lectures": [
+    { "id": "l1", "sectionId": "sec-a", "subjectId": "sub-ds", "facultyId": "fac-1", "roomId": "room-101" },
+    { "id": "l2", "sectionId": "sec-a", "subjectId": "sub-ds", "facultyId": "fac-1", "roomId": "room-101" },
+    { "id": "l3", "sectionId": "sec-a", "subjectId": "sub-db", "facultyId": "fac-2", "roomId": "room-102" },
+    { "id": "l4", "sectionId": "sec-a", "subjectId": "sub-db", "facultyId": "fac-2", "roomId": "room-102" },
+    { "id": "l5", "sectionId": "sec-a", "subjectId": "sub-ds", "facultyId": "fac-1", "roomId": "room-101" },
+    { "id": "l6", "sectionId": "sec-a", "subjectId": "sub-db", "facultyId": "fac-2", "roomId": "room-102" },
+    { "id": "l7", "sectionId": "sec-a", "subjectId": "sub-ds", "facultyId": "fac-1", "roomId": "room-101" },
+    { "id": "l8", "sectionId": "sec-a", "subjectId": "sub-db", "facultyId": "fac-2", "roomId": "room-102" },
+    { "id": "l9", "sectionId": "sec-a", "subjectId": "sub-ds", "facultyId": "fac-1", "roomId": "room-101" },
+    { "id": "l10", "sectionId": "sec-a", "subjectId": "sub-db", "facultyId": "fac-2", "roomId": "room-102" }
+  ]
+}

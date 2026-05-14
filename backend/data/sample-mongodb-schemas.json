@@ -1,0 +1,127 @@
+{
+  "description": "Sample MongoDB-style documents for Timetable GA inputs. Adjust field names to match your app; ObjectId values are illustrative strings.",
+  "collections": {
+    "sections": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439011",
+        "name": "CSE-3A",
+        "department": "CSE",
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      },
+      "notes": "Weekly schedule is produced by the GA and typically stored under timetables.schedule or a dedicated grid collection."
+    },
+    "subjects": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439021",
+        "name": "Data Structures",
+        "code": "CS301",
+        "department": "CSE",
+        "sectionId": "507f1f77bcf86cd799439011",
+        "maxSlotsPerWeek": 5,
+        "isLab": false,
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      },
+      "labExample": {
+        "_id": "507f1f77bcf86cd799439022",
+        "name": "DS Lab",
+        "code": "CS301L",
+        "department": "CSE",
+        "sectionId": "507f1f77bcf86cd799439011",
+        "maxSlotsPerWeek": 5,
+        "isLab": true,
+        "requiresContinuousSlots": 3,
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      }
+    },
+    "labs": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439031",
+        "name": "CSE Lab-1",
+        "department": "CSE",
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      }
+    },
+    "faculty": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439041",
+        "name": "Dr. Example",
+        "email": "faculty@example.edu",
+        "role": "faculty",
+        "department": "CSE",
+        "allottedSubjects": [
+          "507f1f77bcf86cd799439021",
+          "507f1f77bcf86cd799439022"
+        ],
+        "preferenceSubjects": [
+          "507f1f77bcf86cd799439021"
+        ],
+        "hasTakenFirstSlot": false,
+        "notes": "hasTakenFirstSlot can be set true after GA if the member has at least one period-1 assignment that week."
+      }
+    },
+    "rooms": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439051",
+        "name": "Room 101",
+        "department": "CSE",
+        "isLabRoom": false
+      }
+    },
+    "mappings": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439061",
+        "faculty": "507f1f77bcf86cd799439041",
+        "subjectName": "Data Structures",
+        "section": "507f1f77bcf86cd799439011",
+        "department": "CSE"
+      },
+      "notes": "When building the GA `lectures` array, expand each teaching obligation into one entry per weekly period (1 slot each), capped by subject.maxSlotsPerWeek including lab hours."
+    },
+    "labMappings": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439071",
+        "faculty": "507f1f77bcf86cd799439041",
+        "lab": "507f1f77bcf86cd799439031",
+        "section": "507f1f77bcf86cd799439011",
+        "department": "CSE",
+        "subjectId": "507f1f77bcf86cd799439022"
+      },
+      "notes": "Each lab offering becomes one `labs[]` row in the GA problem (one 3-slot block per week). Map labMapping.lab to room or use a dedicated labRoomId on the mapping if you track it."
+    },
+    "timetables": {
+      "example": {
+        "_id": "507f1f77bcf86cd799439081",
+        "section": "507f1f77bcf86cd799439011",
+        "department": "CSE",
+        "schedule": [
+          {
+            "day": "Monday",
+            "periods": [
+              {
+                "periodNumber": 1,
+                "type": "Subject",
+                "subject": "507f1f77bcf86cd799439021",
+                "faculty": "507f1f77bcf86cd799439041",
+                "room": "507f1f77bcf86cd799439051"
+              }
+            ]
+          }
+        ],
+        "gaMeta": {
+          "totalPenalty": 0,
+          "breakdown": {
+            "overlap": 0,
+            "labBlockInvalid": 0,
+            "subjectCap": 0,
+            "emptyDay": 0,
+            "noFirstSlot": 0,
+            "preference": 0,
+            "consecutiveLectureSameSubject": 0
+          }
+        },
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      },
+      "notes": "Use 5 weekdays and 8 period numbers (1–8) to align with the GA default grid and `public/sample-timetable-grid-output.json`."
+    }
+  }
+}

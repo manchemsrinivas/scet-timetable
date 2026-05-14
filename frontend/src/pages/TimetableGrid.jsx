@@ -1,0 +1,441 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  Save, 
+  Download, 
+  FileSpreadsheet, 
+  FileJson, 
+  Play, 
+  ArrowLeft, 
+  RefreshCw, 
+  Plus, 
+  Trash2, 
+  GripVertical,
+  BookOpen,
+  FlaskConical,
+  Users,
+  Settings2,
+  Trophy,
+  Library,
+  GraduationCap
+} from 'lucide-react';
+import api from '../api/axios';
+
+const TimetableGrid = () => {
+  const { sectionId } = useParams();
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [draggedItem, setDraggedItem] = useState(null); // { type: 'sidebar|grid', data: { ... } }
+  const [customItems, setCustomItems] = useState([
+    { id: 'counseling', name: 'Counseling', type: 'Special', icon: <Users size={16}/> },
+    { id: 'sports', name: 'Sports', type: 'Special', icon: <Trophy size={16}/> },
+    { id: 'library', name: 'Library', type: 'Special', icon: <Library size={16}/> },
+    { id: 'crt', name: 'CRT', type: 'Special', icon: <GraduationCap size={16}/> },
+  ]);
+  const [newItemName, setNewItemName] = useState('');
+
+  useEffect(() => {
+    fetchGridData();
+  }, [sectionId]);
+
+  const fetchGridData = async () => {
+    try {
+      const res = await api.get(`/admin/timetable/grid/${sectionId}`);
+      setData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch grid data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutoGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await api.post('/admin/timetable/auto-generate', { 
+        sectionId,
+        days: 6,
+        slotsPerDay: 7,
+        weeklySlotsPerSubject: 5
+      });
+      if (res.data.ok) {
+        setData(prev => ({ 
+          ...prev, 
+          timetable: { 
+            ...prev.timetable, 
+            schedule: res.data.schedule 
+          } 
+        }));
+        alert('Timetable generated successfully!');
+      }
+    } catch (err) {
+      alert('Generation failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await api.post('/admin/timetable/save', { 
+        sectionId, 
+        schedule: data.timetable.schedule 
+      });
+      alert('Timetable saved!');
+    } catch (err) {
+      alert('Save failed');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const addCustomItem = () => {
+    if (!newItemName.trim()) return;
+    const item = {
+      id: `custom-${Date.now()}`,
+      name: newItemName,
+      type: 'Custom',
+      icon: <Settings2 size={16}/>
+    };
+    setCustomItems([...customItems, item]);
+    setNewItemName('');
+  };
+
+  // Drag and Drop Logic
+  const onDragSidebarItem = (item) => {
+    setDraggedItem({ type: 'sidebar', data: item });
+  };
+
+  const onDragGridItem = (day, period) => {
+    setDraggedItem({ type: 'grid', data: { day, period } });
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const onDrop = (targetDay, targetPeriod) => {
+    if (!draggedItem) return;
+    
+    const newSchedule = [...(data.timetable?.schedule || [])];
+    
+    // Ensure the target day object exists
+    let targetDayObj = newSchedule.find(s => s.day === targetDay);
+    if (!targetDayObj) {
+      targetDayObj = { day: targetDay, periods: [] };
+      newSchedule.push(targetDayObj);
+    }
+
+    if (draggedItem.type === 'sidebar') {
+      const { data: item } = draggedItem;
+      // Remove existing item at target if any
+      targetDayObj.periods = targetDayObj.periods.filter(p => p.period !== targetPeriod);
+      
+      // Add new item
+      const newSlot = {
+        period: targetPeriod,
+        type: item.isLab ? 'Lab' : 'Subject',
+        subject: item.name,
+        faculty: item.faculty ? { _id: item.faculty._id, name: item.faculty.name } : null,
+        lab: item.lab ? item.lab.name : null
+      };
+      targetDayObj.periods.push(newSlot);
+
+    } else if (draggedItem.type === 'grid') {
+      const { day: sourceDay, period: sourcePeriod } = draggedItem.data;
+      if (sourceDay === targetDay && sourcePeriod === targetPeriod) return;
+
+      const sourceDayObj = newSchedule.find(s => s.day === sourceDay);
+      if (!sourceDayObj) return;
+
+      const sourcePeriodIdx = sourceDayObj.periods.findIndex(p => p.period === sourcePeriod);
+      const targetPeriodIdx = targetDayObj.periods.findIndex(p => p.period === targetPeriod);
+
+      const sourceSlot = sourceDayObj.periods[sourcePeriodIdx];
+      const targetSlot = targetDayObj.periods[targetPeriodIdx];
+
+      if (sourcePeriodIdx !== -1) {
+        // Swap or Move
+        const updatedSource = targetSlot ? { ...targetSlot, period: sourcePeriod } : null;
+        const updatedTarget = { ...sourceSlot, period: targetPeriod };
+
+        if (updatedSource) {
+          sourceDayObj.periods[sourcePeriodIdx] = updatedSource;
+        } else {
+          sourceDayObj.periods.splice(sourcePeriodIdx, 1);
+        }
+
+        if (targetPeriodIdx !== -1) {
+          targetDayObj.periods[targetPeriodIdx] = updatedTarget;
+        } else {
+          targetDayObj.periods.push(updatedTarget);
+        }
+      }
+    }
+
+    setData({
+      ...data,
+      timetable: {
+        ...(data.timetable || {}),
+        schedule: newSchedule
+      }
+    });
+    setDraggedItem(null);
+  };
+
+  const removeSlot = (day, period) => {
+    const newSchedule = [...data.timetable.schedule];
+    const dayObj = newSchedule.find(s => s.day === day);
+    if (dayObj) {
+      dayObj.periods = dayObj.periods.filter(p => p.period !== period);
+      setData({
+        ...data,
+        timetable: { ...data.timetable, schedule: newSchedule }
+      });
+    }
+  };
+
+  const exportPDF = () => {
+    window.print();
+  };
+
+  const exportExcel = () => {
+    let csv = 'Day/Period,' + data.periods.map(p => `Period ${p}`).join(',') + '\n';
+    data.days.forEach(day => {
+      let row = [day];
+      data.periods.forEach(p => {
+        const slot = data.timetable?.schedule?.find(s => s.day === day)?.periods?.find(pr => pr.period === p);
+        const content = slot ? `${slot.subject || ''} ${slot.faculty?.name ? '(' + slot.faculty.name + ')' : ''}` : '';
+        row.push(`"${content}"`);
+      });
+      csv += row.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `timetable_${data.section.name}.csv`;
+    link.click();
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-96">Loading Designer...</div>;
+  if (!data) return <div className="p-8 text-center">Error loading data. Please check mappings.</div>;
+
+  const { section, days, periods, timetable, mappings, labMappings } = data;
+
+  return (
+    <div className="designer-page">
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate(-1)} className="btn btn-outline p-2"><ArrowLeft size={20} /></button>
+          <div>
+            <h1 className="text-2xl font-bold">Timetable Designer: {section.name}</h1>
+            <p className="text-muted">{section.department} Department • {periods.length} Periods/Day</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={handleAutoGenerate} className="btn btn-outline" disabled={isGenerating}>
+            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
+            Auto Generate (GA)
+          </button>
+          <button onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
+            <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+
+      <div className="designer-layout">
+        {/* Left Sidebar */}
+        <aside className="designer-sidebar print-hide">
+          <div className="sidebar-section">
+            <h3>Subjects</h3>
+            <div className="item-list">
+              {mappings.map(m => (
+                <div 
+                  key={m._id} 
+                  className="draggable-item subject" 
+                  draggable 
+                  onDragStart={() => onDragSidebarItem({ name: m.subjectName, faculty: m.faculty, isLab: false })}
+                >
+                  <BookOpen size={14} />
+                  <span>{m.subjectName}</span>
+                  <div className="text-xs opacity-50 truncate">{m.faculty?.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="sidebar-section">
+            <h3>Labs</h3>
+            <div className="item-list">
+              {labMappings.map(lm => (
+                <div 
+                  key={lm._id} 
+                  className="draggable-item lab" 
+                  draggable 
+                  onDragStart={() => onDragSidebarItem({ name: lm.lab?.name, faculty: lm.faculty, lab: lm.lab, isLab: true })}
+                >
+                  <FlaskConical size={14} />
+                  <span>{lm.lab?.name}</span>
+                  <div className="text-xs opacity-50 truncate">{lm.faculty?.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Special & Custom moved to right sidebar */}
+        </aside>
+
+        {/* Main Grid */}
+        <div className="designer-main">
+          <div className="card p-0 overflow-hidden border-0 shadow-lg">
+            <div className="table-responsive">
+              <table className="timetable-table">
+                <thead>
+                  <tr>
+                    <th className="day-col">Day</th>
+                    {periods.map(p => <th key={p}>Period {p}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {days.map((day) => (
+                    <tr key={day}>
+                      <td className="day-name">{day}</td>
+                      {periods.map((p) => {
+                        const slot = timetable?.schedule?.find(s => s.day === day)?.periods?.find(pr => pr.period === p);
+                        const hasContent = slot && (slot.subject || slot.lab);
+                        
+                        return (
+                          <td 
+                            key={p} 
+                            className={`grid-cell ${hasContent ? 'has-content' : ''}`}
+                            onDragOver={onDragOver}
+                            onDrop={() => onDrop(day, p)}
+                            onContextMenu={(e) => { e.preventDefault(); removeSlot(day, p); }}
+                          >
+                            {hasContent ? (
+                              <div 
+                                className="slot-content" 
+                                draggable 
+                                onDragStart={() => onDragGridItem(day, p)}
+                              >
+                                <div className="slot-subject font-bold">{slot.subject}</div>
+                                {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
+                                {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{slot.lab}</div>}
+                                <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
+                              </div>
+                            ) : (
+                              <div className="slot-empty"></div>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-6 print-hide">
+            <button onClick={exportExcel} className="btn btn-outline text-success"><FileSpreadsheet size={16} /> Export CSV</button>
+            <button onClick={exportPDF} className="btn btn-outline text-danger"><FileJson size={16} /> Print / PDF</button>
+          </div>
+        </div>
+
+        {/* Right Sidebar */}
+        <aside className="designer-sidebar right-sidebar print-hide">
+          <div className="sidebar-section">
+            <h3>Special & Custom</h3>
+            <div className="item-list">
+              {customItems.map(item => (
+                <div 
+                  key={item.id} 
+                  className="draggable-item special" 
+                  draggable 
+                  onDragStart={() => onDragSidebarItem({ name: item.name, isLab: false })}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-2">
+              <input 
+                type="text" 
+                className="input input-sm flex-1" 
+                placeholder="New item..." 
+                value={newItemName}
+                onChange={(e) => setNewItemName(e.target.value)}
+              />
+              <button className="btn btn-primary btn-sm p-1" onClick={addCustomItem}><Plus size={16}/></button>
+            </div>
+          </div>
+          
+          <div className="mt-8 p-4 bg-light rounded-lg">
+            <h4 className="text-sm font-bold mb-2">Instructions</h4>
+            <ul className="text-xs text-muted space-y-1">
+              <li>• Drag from sidebars to assign</li>
+              <li>• Drag within grid to swap</li>
+              <li>• Right-click to remove</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <style>{`
+        .designer-layout { display: flex; gap: 1.5rem; }
+        .designer-sidebar { width: 260px; flex-shrink: 0; background: white; padding: 1.25rem; border-radius: var(--radius-lg); border: 1px solid var(--border); height: fit-content; position: sticky; top: 1rem; }
+        .designer-main { flex: 1; min-width: 0; }
+        
+        .sidebar-section h3 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem; margin-top: 1.5rem; }
+        .sidebar-section:first-child h3 { margin-top: 0; }
+        
+        .item-list { display: flex; flex-direction: column; gap: 0.5rem; }
+        .draggable-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem; background: var(--bg-main); border-radius: var(--radius-md); cursor: grab; border: 1px solid transparent; transition: all 0.2s; }
+        .draggable-item:hover { border-color: var(--primary); transform: translateX(4px); }
+        .draggable-item span { font-size: 0.8125rem; font-weight: 500; flex: 1; }
+        
+        .draggable-item.subject { border-left: 3px solid var(--primary); }
+        .draggable-item.lab { border-left: 3px solid var(--warning); }
+        .draggable-item.special { border-left: 3px solid var(--info); }
+
+        .timetable-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .timetable-table th, .timetable-table td { border: 1px solid var(--border); text-align: center; height: 100px; transition: all 0.2s; position: relative; }
+        .timetable-table th { background: var(--bg-main); font-size: 0.75rem; font-weight: 700; height: 50px; }
+        .day-col { width: 100px; }
+        .day-name { font-weight: 700; background: var(--bg-main); font-size: 0.875rem; }
+        
+        .grid-cell { background: #f8fafc; transition: all 0.2s; }
+        .grid-cell:hover { background: #f1f5f9; }
+        .grid-cell.has-content { background: white; }
+        
+        .slot-content { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.125rem; height: 100%; justify-content: center; cursor: grab; position: relative; }
+        .slot-content:active { cursor: grabbing; }
+        .slot-subject { font-size: 0.8125rem; color: var(--primary); line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .slot-faculty { color: var(--text-muted); font-size: 0.7rem; }
+        .slot-lab { color: var(--warning); font-size: 0.65rem; margin-top: 0.25rem; }
+        
+        .remove-btn { position: absolute; top: 2px; right: 2px; padding: 4px; border: none; background: rgba(0,0,0,0.05); border-radius: 4px; color: var(--danger); opacity: 0; transition: opacity 0.2s; cursor: pointer; }
+        .grid-cell:hover .remove-btn { opacity: 1; }
+        
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        @media print {
+          .print-hide, .designer-sidebar, .btn, .remove-btn { display: none !important; }
+          .designer-layout { display: block; }
+          .main-content { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+          .card { box-shadow: none !important; border: 1px solid #000 !important; }
+          .timetable-table td, .timetable-table th { height: 70px; border: 1px solid #000 !important; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default TimetableGrid;
