@@ -36,6 +36,11 @@ const AdminDashboard = () => {
     };
     navigate(pathMap[tabId] || '/admin');
   };
+  const [data, setData] = useState({
+    submissions: [],
+    sections: [],
+    mappings: [],
+    labs: [],
     labMappings: [],
     approvedFaculty: [],
     venues: [],
