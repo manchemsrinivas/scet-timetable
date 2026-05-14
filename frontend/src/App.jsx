@@ -58,6 +58,7 @@ const App = () => {
             <Route path="/admin/labs" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/admin/timetables" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/admin/faculty-timetables" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
+            <Route path="/admin/lab-venue-timetables" element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
             <Route path="/admin/timetable/grid/:sectionId" element={user?.role === 'admin' ? <TimetableGrid /> : <Navigate to="/login" />} />
             
             {/* Protected Faculty Routes */}
