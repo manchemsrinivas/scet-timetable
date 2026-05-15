@@ -4,6 +4,7 @@ const session = require('express-session');
 const path = require('path');
 const cors = require('cors');
 const flash = require('connect-flash');
+const cookieParser = require('cookie-parser');
 const MongoStore = require('connect-mongo');
 require('dotenv').config();
 
@@ -12,6 +13,8 @@ const PORT = process.env.PORT || 5001;
 
 // Trust proxy for secure cookies on Render/Heroku
 app.set('trust proxy', 1);
+
+app.use(cookieParser());
 
 // Simplified CORS for testing
 app.use(cors({

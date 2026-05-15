@@ -29,7 +29,12 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
-        req.session.user = { id: user._id, name: user.name, role: user.role, department: user.department };
+        req.session.user = { 
+            id: user._id.toString(), 
+            name: user.name, 
+            role: user.role, 
+            department: user.department 
+        };
         
         req.session.save((err) => {
             if (err) {
