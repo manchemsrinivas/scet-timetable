@@ -350,7 +350,7 @@ const AdminDashboard = () => {
     <div className="dashboard-container">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="text-2xl font-bold">Admin Dashboard Timetable APP</h1>
           <p className="text-muted">Academic Management & Timetable Control</p>
         </div>
         <div className="flex gap-4">
