@@ -4,7 +4,7 @@ require('dotenv').config();
 
 const seedAdmin = async () => {
     try {
-        const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable';
+        const uri = process.env.MONGODB_URI || 'mongodb+srv://<username>:<password>@cluster0.cjxmwws.mongodb.net/scet_timetable?retryWrites=true&w=majority';
         await mongoose.connect(uri);
         console.log('Connected to MongoDB');
 
