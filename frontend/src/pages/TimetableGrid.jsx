@@ -234,6 +234,29 @@ const TimetableGrid = () => {
     }
   };
 
+  const handleClearGrid = () => {
+    if (!confirm('Are you sure you want to clear the entire grid? All slots will be reset.')) return;
+    
+    const clearedSchedule = data.timetable.schedule.map(day => ({
+      ...day,
+      periods: day.periods.map(p => ({
+        period: p.period,
+        type: 'Free',
+        subject: '-',
+        faculty: null,
+        lab: null
+      }))
+    }));
+
+    setData({
+      ...data,
+      timetable: {
+        ...data.timetable,
+        schedule: clearedSchedule
+      }
+    });
+  };
+
   const exportPDF = () => {
     window.print();
   };
@@ -280,6 +303,9 @@ const TimetableGrid = () => {
           <button onClick={handleSemiGA} className="btn btn-outline border-warning text-warning" disabled={isGenerating}>
             {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
             Semi-Auto (GA)
+          </button>
+          <button onClick={handleClearGrid} className="btn btn-outline text-danger" title="Clear Grid">
+            <Trash2 size={16} /> Clear Grid
           </button>
           <button onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
             <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
