@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 5001;
 
 // CORS configuration
 app.use(cors({
-    origin: 'http://localhost:5173', // Vite default port
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true
 }));
 
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 
 // Session configuration
 app.use(session({
-    secret: 'scet_secret_key',
+    secret: process.env.SESSION_SECRET || 'scet_secret_key',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -49,7 +49,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Database Connection
-mongoose.connect('mongodb://127.0.0.1:27017/scet_timetable', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => {
