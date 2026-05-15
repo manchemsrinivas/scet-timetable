@@ -496,9 +496,9 @@ const TimetableGrid = () => {
         .grid-cell:hover { background: #f1f5f9; }
         .grid-cell.has-content { background: white; }
         
-        .lab-cell-merged { background-color: #fffbeb !important; border: 2px solid var(--warning) !important; padding: 0 !important; }
-        .lab-content-merged { padding: 1rem !important; border-left: 4px solid var(--warning); height: 100%; display: flex; flexDirection: column; justify-content: center; }
-        .text-warning-dark { color: #92400e; }
+        .lab-cell-merged { background-color: #fef9c3 !important; border: 2px solid #eab308 !important; padding: 0 !important; }
+        .lab-content-merged { padding: 1rem !important; border-left: 4px solid #eab308; height: 100%; display: flex; flexDirection: column; justify-content: center; }
+        .text-warning-dark { color: #854d0e; }
 
         .slot-content { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.125rem; height: 100%; justify-content: center; cursor: grab; position: relative; }
         .slot-content:active { cursor: grabbing; }

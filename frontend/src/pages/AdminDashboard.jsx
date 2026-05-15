@@ -980,9 +980,9 @@ const AdminDashboard = () => {
                                   <td key={pIdx} colSpan={3} style={{ padding: '0.25rem', height: '80px', borderRight: '1px solid var(--border)', verticalAlign: 'middle' }}>
                                     <div 
                                       style={{ 
-                                        backgroundColor: '#fffbeb', 
-                                        border: '2px solid var(--warning)',
-                                        borderLeft: '4px solid var(--warning)',
+                                        backgroundColor: '#fef9c3', // Lemon Yellow
+                                        border: '2px solid #eab308',
+                                        borderLeft: '4px solid #eab308',
                                         height: '100%',
                                         width: '100%',
                                         padding: '0.5rem',
@@ -991,10 +991,10 @@ const AdminDashboard = () => {
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        boxShadow: '0 2px 4px rgba(245, 158, 11, 0.1)'
+                                        boxShadow: '0 2px 4px rgba(234, 179, 8, 0.1)'
                                       }}
                                     >
-                                      <span className="font-bold text-sm" style={{ color: '#92400e', textAlign: 'center' }}>
+                                      <span className="font-bold text-sm" style={{ color: '#854d0e', textAlign: 'center' }}>
                                         {period.subject} (Lab)
                                       </span>
                                       {period.section && (
@@ -1117,9 +1117,9 @@ const AdminDashboard = () => {
                                   <td key={pIdx} colSpan={3} style={{ padding: '0.25rem', height: '100px', borderRight: '1px solid var(--border)', verticalAlign: 'middle' }}>
                                     <div 
                                       style={{ 
-                                        backgroundColor: '#eef2ff', // Light Indigo
-                                        border: '2px solid #6366f1',
-                                        borderLeft: '4px solid #6366f1',
+                                        backgroundColor: '#fef9c3', // Lemon Yellow
+                                        border: '2px solid #eab308',
+                                        borderLeft: '4px solid #eab308',
                                         height: '100%',
                                         width: '100%',
                                         padding: '0.5rem',
@@ -1128,10 +1128,10 @@ const AdminDashboard = () => {
                                         flexDirection: 'column',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
+                                        boxShadow: '0 2px 4px rgba(234, 179, 8, 0.1)'
                                       }}
                                     >
-                                      <span className="font-bold text-sm" style={{ color: '#3730a3', textAlign: 'center' }}>
+                                      <span className="font-bold text-sm" style={{ color: '#854d0e', textAlign: 'center' }}>
                                         {period.lab}
                                       </span>
                                       <span className="badge badge-primary text-[10px] mt-1" style={{ fontSize: '9px' }}>{period.section}</span>
