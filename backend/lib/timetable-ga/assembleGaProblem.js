@@ -81,6 +81,7 @@ async function assembleGaProblemFromMappings(mappings, labMappings, options = {}
     subjectId: `Lab:${lm.lab.name}`,
     facultyId: lm.faculty._id.toString(),
     roomId: lm.lab._id.toString(),
+    venue: lm.labVenue || 'TBA',
   }));
 
   const subjectsMap = new Map();

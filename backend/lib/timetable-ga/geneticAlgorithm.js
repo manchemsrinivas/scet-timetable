@@ -52,6 +52,7 @@ function expandEvents(problem, individual) {
         roomId: lab.roomId,
         subjectId: lab.subjectId,
         labId: lab.id,
+        venue: lab.venue,
         phantom: false,
       });
     }

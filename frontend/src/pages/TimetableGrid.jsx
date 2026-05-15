@@ -400,12 +400,17 @@ const TimetableGrid = () => {
                                 >
                                   <div className="slot-content lab-content-merged">
                                     <div className="slot-subject font-bold text-base text-warning-dark">{labName}</div>
+                                    <div className="text-[10px] uppercase font-bold text-muted mt-1 tracking-wider opacity-60">3-Hour Lab Session</div>
+                                    {slot.venue && (
+                                      <div className="text-[11px] font-bold text-slate-500 mt-1">
+                                        Venue: {slot.venue}
+                                      </div>
+                                    )}
                                     {slot.faculty?.name && (
                                       <div className="slot-faculty text-xs font-semibold mt-1">
                                         Faculty: {slot.faculty.name}
                                       </div>
                                     )}
-                                    <div className="text-[10px] uppercase font-bold text-muted mt-2 tracking-wider opacity-60">3-Hour Lab Session</div>
                                     <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
                                   </div>
                                 </td>
@@ -433,6 +438,7 @@ const TimetableGrid = () => {
                                   <div className="slot-subject font-bold">{slot.subject}</div>
                                   {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
                                   {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
+                                  {slot.type === 'Lab' && slot.venue && <div className="text-[9px] font-bold text-slate-500">Venue: {slot.venue}</div>}
                                   <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
                                 </div>
                               ) : (

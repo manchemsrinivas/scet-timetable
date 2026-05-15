@@ -44,7 +44,8 @@ function scheduleFromGaResult(gaResult, sectionId, dayLabels, facultyMap = {}) {
           type: 'Lab',
           subject: cell.subjectId,
           faculty: { _id: cell.facultyId, name: facultyName },
-          lab: cell.roomId || null,
+          lab: cell.subjectId.replace('Lab:', ''),
+          venue: cell.venue || null,
         });
       }
     }
