@@ -11,7 +11,11 @@ const PORT = process.env.PORT || 5001;
 
 // CORS configuration
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: function(origin, callback) {
+        // Allow all origins for now as requested ("making backend public")
+        // In production, you should ideally restrict this to your frontend URL
+        callback(null, true);
+    },
     credentials: true
 }));
 
@@ -31,7 +35,8 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // set to true if using https
+        secure: process.env.NODE_ENV === 'production', // true for https
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
