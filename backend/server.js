@@ -30,33 +30,35 @@ app.use((req, res, next) => {
     next();
 });
 
-// Body parser (RESTORED)
+// Body parser
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Session configuration (Moved to top level)
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'scet_secret_key',
+    resave: false,
+    saveUninitialized: false,
+    proxy: true,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable',
+        collectionName: 'sessions',
+        ttl: 24 * 60 * 60
+    }),
+    cookie: {
+        secure: isProduction, // Only secure in production
+        sameSite: isProduction ? 'none' : 'lax',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000
+    }
+}));
 
 // Database Connection
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable').then(() => {
     console.log('MongoDB Connected');
     
-    // Session configuration (moved inside connection)
-    app.use(session({
-        secret: process.env.SESSION_SECRET || 'scet_secret_key',
-        resave: true, // Force resave to ensure database update
-        saveUninitialized: false,
-        proxy: true,
-        store: MongoStore.create({
-            client: mongoose.connection.getClient(),
-            collectionName: 'sessions',
-            ttl: 24 * 60 * 60
-        }),
-        cookie: {
-            secure: true,
-            sameSite: 'none',
-            httpOnly: true,
-            maxAge: 24 * 60 * 60 * 1000
-        }
-    }));
-
     // Debug route to check session status
     app.get('/api/debug-session', (req, res) => {
         res.json({
