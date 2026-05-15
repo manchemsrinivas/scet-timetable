@@ -43,8 +43,9 @@ app.use(session({
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
-        sameSite: (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') ? 'none' : 'lax',
+        // Force secure: true if we are on Render (HTTPS)
+        secure: true, 
+        sameSite: 'none',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
