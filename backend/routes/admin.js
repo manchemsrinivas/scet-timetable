@@ -295,7 +295,10 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         const { sectionId, fixedSlots, generations, populationSize, weeklySlotsPerSubject } = req.body;
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
 
-        let problem = await buildGaProblemFromDb(sectionId, { 
+        const section = await Section.findById(sectionId);
+        if (!section) return res.status(404).json({ error: 'Section not found' });
+
+        let problem = await buildGaProblemForDepartment(section.department, { 
             weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
             days: 6, 
             slotsPerDay: 7 
@@ -307,8 +310,8 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         const processedFixed = [];
         
         // Tracking how many lectures/labs are already fixed
-        const fixedCounts = {}; // "facultyId|subjectId" -> count
-        const fixedLabs = new Set(); // "facultyId|labId"
+        const fixedCounts = {}; // "sectionId|facultyId|subjectId" -> count
+        const fixedLabs = new Set(); // "sectionId|facultyId|labId"
 
         fixedSlots.forEach(fs => {
             if (!fs.subject || fs.subject === '-') return;
@@ -328,9 +331,9 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
             });
 
             if (fs.type === 'Lab') {
-                fixedLabs.add(`${fs.facultyId}|${fs.labId}`);
+                fixedLabs.add(`${sectionId}|${fs.facultyId}|${fs.labId}`);
             } else {
-                const key = `${fs.facultyId}|${fs.subject}`;
+                const key = `${sectionId}|${fs.facultyId}|${fs.subject}`;
                 fixedCounts[key] = (fixedCounts[key] || 0) + 1;
             }
         });
@@ -339,7 +342,7 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         const remainingLectures = [];
         const currentTracker = {};
         problem.lectures.forEach(lec => {
-            const key = `${lec.facultyId}|${lec.subjectId}`;
+            const key = `${lec.sectionId}|${lec.facultyId}|${lec.subjectId}`;
             const alreadyPlaced = fixedCounts[key] || 0;
             const alreadyAccounted = currentTracker[key] || 0;
             
@@ -353,7 +356,7 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
 
         // Filter out labs that are already manually placed
         const remainingLabs = problem.labs.filter(lab => {
-            const key = `${lab.facultyId}|${lab.roomId}`;
+            const key = `${lab.sectionId}|${lab.facultyId}|${lab.roomId}`;
             return !fixedLabs.has(key);
         });
 
@@ -372,21 +375,38 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         const facultyMap = {};
         facultyDocs.forEach(f => facultyMap[f._id.toString()] = f.name);
 
-        const schedule = scheduleFromGaResult(gaResult, sectionId, problem.dayLabels, facultyMap);
+        let targetSchedule = null;
 
-        // MERGE: Combine fixed slots into the GA result
-        schedule.forEach(daySchedule => {
-            const dayFixed = fixedSlots.filter(fs => fs.day === daySchedule.day);
-            dayFixed.forEach(fs => {
-                if (!fs.subject || fs.subject === '-') return;
-                const period = daySchedule.periods.find(p => p.period === fs.period);
-                if (period) {
-                    Object.assign(period, fs);
-                }
-            });
-        });
+        // Save timetables for ALL sections in the department to DB
+        for (const sid of problem.sectionIds) {
+            const schedule = scheduleFromGaResult(gaResult, sid, problem.dayLabels, facultyMap);
+            
+            // For the requested section, overlay the exact fixed slots to guarantee display consistency
+            if (sid === sectionId) {
+                schedule.forEach(daySchedule => {
+                    const dayFixed = fixedSlots.filter(fs => fs.day === daySchedule.day);
+                    dayFixed.forEach(fs => {
+                        if (!fs.subject || fs.subject === '-') return;
+                        const period = daySchedule.periods.find(p => p.period === fs.period);
+                        if (period) {
+                            Object.assign(period, fs);
+                        }
+                    });
+                });
+                targetSchedule = schedule;
+            }
 
-        res.json({ ok: true, fitness: gaResult.fitness, schedule });
+            const sec = await Section.findById(sid);
+            if (sec) {
+                await Timetable.findOneAndUpdate(
+                    { section: sid }, 
+                    { schedule: sid === sectionId ? targetSchedule : schedule, department: sec.department, gaMeta: { totalPenalty: gaResult.fitness.totalPenalty } }, 
+                    { upsert: true }
+                );
+            }
+        }
+
+        res.json({ ok: true, fitness: gaResult.fitness, schedule: targetSchedule });
     } catch (err) {
         console.error(err);
         res.status(err.statusCode || 500).json({ error: err.message });

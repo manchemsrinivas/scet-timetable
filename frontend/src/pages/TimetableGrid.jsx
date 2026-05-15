@@ -344,7 +344,18 @@ const TimetableGrid = () => {
   }, [timetable]);
 
   return (
-    <div className="designer-page">
+    <div className="designer-page relative">
+      {isGenerating && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
+          <div className="relative flex items-center justify-center w-24 h-24 mb-4">
+            <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-primary rounded-full border-t-transparent animate-spin"></div>
+            <Play className="text-primary animate-pulse" size={32} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800">Running Genetic Algorithm</h3>
+          <p className="text-sm text-gray-500 mt-2 max-w-md text-center">Optimizing department timetables. This may take a few moments...</p>
+        </div>
+      )}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="btn btn-outline p-2"><ArrowLeft size={20} /></button>
