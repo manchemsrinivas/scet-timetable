@@ -150,6 +150,45 @@ const AdminDashboard = () => {
     }
   }, [selectedVenueName]);
 
+  const exportFacultyCSV = () => {
+    if (!facultyScheduleData) return;
+    const faculty = data.approvedFaculty.find(f => f.faculty._id === selectedFacultyId);
+    let csv = `Faculty Timetable: ${faculty?.faculty?.name || 'Unknown'}\n`;
+    csv += 'Day/Period,Period 1,Period 2,Period 3,Period 4,Period 5,Period 6,Period 7\n';
+    facultyScheduleData.forEach(day => {
+      let row = [day.day];
+      day.periods.forEach(p => {
+        row.push(p.subject === '-' ? '' : `"${p.subject}${p.section ? ' (' + p.section + ')' : ''}"`);
+      });
+      csv += row.join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Faculty_Timetable_${faculty?.faculty?.name || 'Faculty'}.csv`;
+    link.click();
+  };
+
+  const exportVenueCSV = () => {
+    if (!venueScheduleData) return;
+    let csv = `Lab Venue Timetable: ${selectedVenueName}\n`;
+    csv += 'Day/Period,Period 1,Period 2,Period 3,Period 4,Period 5,Period 6,Period 7\n';
+    venueScheduleData.forEach(day => {
+      let row = [day.day];
+      day.periods.forEach(p => {
+        row.push(p.subject === '-' ? '' : `"${p.subject}${p.section ? ' (' + p.section + ')' : ''}"`);
+      });
+      csv += row.join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Venue_Timetable_${selectedVenueName}.csv`;
+    link.click();
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
@@ -797,6 +836,14 @@ const AdminDashboard = () => {
               
               return (
                 <div className="mt-8">
+                  <div className="flex justify-end gap-2 mb-4 print-hide">
+                    <button onClick={exportFacultyCSV} className="btn btn-outline text-success btn-sm">
+                      <Download size={14} className="me-1" /> Export CSV
+                    </button>
+                    <button onClick={() => window.print()} className="btn btn-outline text-danger btn-sm">
+                      <Plus size={14} className="me-1" /> Print / PDF
+                    </button>
+                  </div>
                   <div className="flex gap-4 mb-6">
                     <div className="card flex-1 mb-0 py-4 px-6 shadow-sm border border-primary" style={{ backgroundColor: 'var(--primary-light)' }}>
                       <div className="text-xs font-bold text-primary text-uppercase tracking-wider mb-1">Theory Workload</div>
@@ -940,6 +987,14 @@ const AdminDashboard = () => {
 
             {selectedVenueName && venueScheduleData && (
               <div className="mt-8">
+                <div className="flex justify-end gap-2 mb-4 print-hide">
+                  <button onClick={exportVenueCSV} className="btn btn-outline text-success btn-sm">
+                    <Download size={14} className="me-1" /> Export CSV
+                  </button>
+                  <button onClick={() => window.print()} className="btn btn-outline text-danger btn-sm">
+                    <Plus size={14} className="me-1" /> Print / PDF
+                  </button>
+                </div>
                 <div className="table-container" style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
                   <table className="table venue-grid-table" style={{ minWidth: '800px', width: '100%', tableLayout: 'fixed' }}>
                     <thead>
@@ -1010,6 +1065,15 @@ const AdminDashboard = () => {
         .avatar-circle { display: flex; align-items: center; justify-content: center; }
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media print {
+          .print-hide, .dashboard-tabs, .btn, .select, .label, .mb-8, .form-group { display: none !important; }
+          .card { box-shadow: none !important; border: 1px solid #eee !important; margin: 0 !important; padding: 0 !important; }
+          .dashboard-container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+          .table-container { border: 1px solid #000 !important; }
+          .table th, .table td { border: 1px solid #000 !important; color: #000 !important; }
+          .faculty-grid-table, .venue-grid-table { width: 100% !important; min-width: 100% !important; table-layout: fixed !important; }
+          h3 { margin-bottom: 20px !important; text-align: center !important; }
+        }
       `}</style>
     </div>
   );
