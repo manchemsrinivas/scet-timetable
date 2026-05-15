@@ -486,8 +486,7 @@ const TimetableGrid = () => {
                 >
                   {item.icon}
                   <div className="flex flex-col">
-                    <span className="font-semibold">{item.name}</span>
-                    {item.instructor && <span className="text-[10px] opacity-70 italic">{item.instructor}</span>}
+                    <span className="font-semibold">{item.instructor || item.name}</span>
                   </div>
                 </div>
               ))}
