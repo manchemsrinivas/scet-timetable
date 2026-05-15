@@ -290,6 +290,109 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
     }
 });
 
+router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
+    try {
+        const { sectionId, fixedSlots, generations, populationSize, weeklySlotsPerSubject } = req.body;
+        if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
+
+        let problem = await buildGaProblemFromDb(sectionId, { 
+            weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
+            days: 6, 
+            slotsPerDay: 7 
+        });
+
+        // Convert grid-based fixedSlots to GA-friendly format
+        // fixedSlots: [ { day, period, type, subject, facultyId, labId } ]
+        const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const processedFixed = [];
+        
+        // Tracking how many lectures/labs are already fixed
+        const fixedCounts = {}; // "facultyId|subjectId" -> count
+        const fixedLabs = new Set(); // "facultyId|labId"
+
+        fixedSlots.forEach(fs => {
+            if (!fs.subject || fs.subject === '-') return;
+            
+            const dayIdx = daysArr.indexOf(fs.day);
+            const slotIdx = fs.period - 1;
+            
+            if (dayIdx === -1 || slotIdx === -1) return;
+
+            processedFixed.push({
+                day: dayIdx,
+                slot: slotIdx,
+                sectionId,
+                facultyId: fs.facultyId || null,
+                subjectId: fs.subject,
+                kind: fs.type === 'Lab' ? 'lab' : 'lecture'
+            });
+
+            if (fs.type === 'Lab') {
+                fixedLabs.add(`${fs.facultyId}|${fs.labId}`);
+            } else {
+                const key = `${fs.facultyId}|${fs.subject}`;
+                fixedCounts[key] = (fixedCounts[key] || 0) + 1;
+            }
+        });
+
+        // Filter out lectures that are already manually placed
+        const remainingLectures = [];
+        const currentTracker = {};
+        problem.lectures.forEach(lec => {
+            const key = `${lec.facultyId}|${lec.subjectId}`;
+            const alreadyPlaced = fixedCounts[key] || 0;
+            const alreadyAccounted = currentTracker[key] || 0;
+            
+            if (alreadyAccounted < alreadyPlaced) {
+                currentTracker[key] = alreadyAccounted + 1;
+                // Skip adding to remainingLectures because it's already in fixedSlots
+            } else {
+                remainingLectures.push(lec);
+            }
+        });
+
+        // Filter out labs that are already manually placed
+        const remainingLabs = problem.labs.filter(lab => {
+            const key = `${lab.facultyId}|${lab.roomId}`;
+            return !fixedLabs.has(key);
+        });
+
+        // Update problem with remaining items and fixed obstacles
+        problem.lectures = remainingLectures;
+        problem.labs = remainingLabs;
+        problem.fixedSlots = processedFixed;
+
+        const gaResult = await runTimetableGAInWorker(problem, { 
+            generations: generations ?? 1500, 
+            populationSize: populationSize ?? 80 
+        });
+        
+        const facultyIds = problem.faculty.map(f => f.id);
+        const facultyDocs = await User.find({ _id: { $in: facultyIds } }, 'name');
+        const facultyMap = {};
+        facultyDocs.forEach(f => facultyMap[f._id.toString()] = f.name);
+
+        const schedule = scheduleFromGaResult(gaResult, sectionId, problem.dayLabels, facultyMap);
+
+        // MERGE: Combine fixed slots into the GA result
+        schedule.forEach(daySchedule => {
+            const dayFixed = fixedSlots.filter(fs => fs.day === daySchedule.day);
+            dayFixed.forEach(fs => {
+                if (!fs.subject || fs.subject === '-') return;
+                const period = daySchedule.periods.find(p => p.period === fs.period);
+                if (period) {
+                    Object.assign(period, fs);
+                }
+            });
+        });
+
+        res.json({ ok: true, fitness: gaResult.fitness, schedule });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.post('/timetable/auto-generate-department', ensureAdmin, async (req, res) => {
     try {
         const { department, generations, populationSize, weeklySlotsPerSubject, days, slotsPerDay, firstSlotAllDepartmentFaculty } = req.body || {};

@@ -73,6 +73,17 @@ function expandEvents(problem, individual) {
     });
   }
 
+  // Support for SemiGA: include fixed slots as permanent events
+  if (problem.fixedSlots && problem.fixedSlots.length > 0) {
+    problem.fixedSlots.forEach(fs => {
+      events.push({
+        ...fs,
+        kind: 'fixed',
+        phantom: false
+      });
+    });
+  }
+
   return events;
 }
 

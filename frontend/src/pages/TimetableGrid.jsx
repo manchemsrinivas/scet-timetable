@@ -199,6 +199,41 @@ const TimetableGrid = () => {
     }
   };
 
+  const handleSemiGA = async () => {
+    if (!confirm('Semi-Auto Generate will keep your manually placed items and fill the empty slots. Proceed?')) return;
+    setIsGenerating(true);
+    try {
+      const fixedSlots = [];
+      data.timetable?.schedule?.forEach(daySchedule => {
+        daySchedule.periods.forEach(period => {
+          if (period.subject && period.subject !== '-') {
+            fixedSlots.push({
+              day: daySchedule.day,
+              period: period.period,
+              type: period.type,
+              subject: period.subject,
+              facultyId: period.faculty?._id || period.faculty?.id || null,
+              labId: period.lab?._id || period.lab?.id || null
+            });
+          }
+        });
+      });
+
+      const res = await api.post('/admin/timetable/semi-auto-generate', { 
+        sectionId: id,
+        fixedSlots,
+        generations: 1500
+      });
+      
+      setData({ ...data, timetable: { ...data.timetable, schedule: res.data.schedule } });
+      alert('Timetable completed successfully!');
+    } catch (err) {
+      alert('Generation failed: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const exportPDF = () => {
     window.print();
   };
@@ -240,7 +275,11 @@ const TimetableGrid = () => {
         <div className="flex gap-2">
           <button onClick={handleAutoGenerate} className="btn btn-outline" disabled={isGenerating}>
             {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
-            Auto Generate (GA)
+            Full Auto (GA)
+          </button>
+          <button onClick={handleSemiGA} className="btn btn-outline border-warning text-warning" disabled={isGenerating}>
+            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+            Semi-Auto (GA)
           </button>
           <button onClick={handleSave} className="btn btn-primary" disabled={isSaving}>
             <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
