@@ -13,25 +13,23 @@ const PORT = process.env.PORT || 5001;
 // Trust proxy for secure cookies on Render/Heroku
 app.set('trust proxy', 1);
 
-// CORS configuration
+// Simplified CORS for testing
 app.use(cors({
-    origin: function(origin, callback) {
-        if (origin) console.log('Incoming request from origin:', origin);
-        // Allow all origins for now as requested ("making backend public")
-        callback(null, true);
-    },
+    origin: true, 
     credentials: true
 }));
 
-// Body parser
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// Request logger
+// Request logger with Session tracking
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    console.log(`- SessionID: ${req.sessionID}`);
+    console.log(`- Cookies Present: ${!!req.headers.cookie}`);
     next();
 });
+
+// Body parser (RESTORED)
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // Session configuration
 app.use(session({
