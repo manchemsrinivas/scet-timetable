@@ -36,6 +36,7 @@ const TimetableGrid = () => {
     { id: 'crt', name: 'CRT', type: 'Special', icon: <GraduationCap size={16}/> },
   ]);
   const [newItemName, setNewItemName] = useState('');
+  const [newItemInstructor, setNewItemInstructor] = useState('');
 
   useEffect(() => {
     fetchGridData();
@@ -98,11 +99,13 @@ const TimetableGrid = () => {
     const item = {
       id: `custom-${Date.now()}`,
       name: newItemName,
+      instructor: newItemInstructor,
       type: 'Custom',
       icon: <Settings2 size={16}/>
     };
     setCustomItems([...customItems, item]);
     setNewItemName('');
+    setNewItemInstructor('');
   };
 
   // Drag and Drop Logic
@@ -140,7 +143,9 @@ const TimetableGrid = () => {
         period: targetPeriod,
         type: item.isLab ? 'Lab' : 'Subject',
         subject: item.name,
-        faculty: item.faculty ? { _id: item.faculty._id, name: item.faculty.name } : null,
+        faculty: item.faculty 
+          ? { _id: item.faculty._id, name: item.faculty.name } 
+          : (item.instructor ? { name: item.instructor } : null),
         lab: item.lab ? { _id: item.lab._id, name: item.lab.name } : null
       };
       targetDayObj.periods.push(newSlot);
@@ -472,22 +477,32 @@ const TimetableGrid = () => {
                   key={item.id} 
                   className="draggable-item special" 
                   draggable 
-                  onDragStart={() => onDragSidebarItem({ name: item.name, isLab: false })}
+                  onDragStart={() => onDragSidebarItem({ name: item.name, instructor: item.instructor, isLab: false })}
                 >
                   {item.icon}
-                  <span>{item.name}</span>
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{item.name}</span>
+                    {item.instructor && <span className="text-[10px] opacity-70 italic">{item.instructor}</span>}
+                  </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2">
               <input 
                 type="text" 
-                className="input input-sm flex-1" 
-                placeholder="New item..." 
+                className="input input-sm" 
+                placeholder="Item name (e.g. Sports)" 
                 value={newItemName}
                 onChange={(e) => setNewItemName(e.target.value)}
               />
-              <button className="btn btn-primary btn-sm p-1" onClick={addCustomItem}><Plus size={16}/></button>
+              <input 
+                type="text" 
+                className="input input-sm" 
+                placeholder="Instructor (optional)" 
+                value={newItemInstructor}
+                onChange={(e) => setNewItemInstructor(e.target.value)}
+              />
+              <button className="btn btn-primary btn-sm" onClick={addCustomItem}><Plus size={16}/> Add Item</button>
             </div>
           </div>
           
