@@ -1011,35 +1011,80 @@ const AdminDashboard = () => {
                           <td className="font-bold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', background: 'var(--bg-main)' }}>
                             {dayData.day}
                           </td>
-                          {dayData.periods.map((period, pIdx) => (
-                            <td key={pIdx} style={{ padding: '0.5rem', height: '100px', borderRight: pIdx !== 6 ? '1px solid var(--border)' : 'none', verticalAlign: 'middle' }}>
-                              {period.type === 'Lab' ? (
-                                <div 
-                                  style={{ 
-                                    backgroundColor: 'rgba(245, 158, 11, 0.15)', 
-                                    height: '100%',
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    borderRadius: 'var(--radius-md)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '0.25rem',
-                                    border: '1px solid rgba(245, 158, 11, 0.3)'
-                                  }}
-                                >
-                                  <span className="font-bold text-sm" style={{ textAlign: 'center', lineHeight: '1.2', color: 'var(--warning-dark)' }}>
-                                    {period.lab}
-                                  </span>
-                                  <span className="badge badge-primary text-xs mt-1" style={{ fontSize: '10px' }}>{period.section}</span>
-                                  <span className="text-xs font-semibold mt-1" style={{ color: 'var(--text-main)', opacity: 0.8 }}>{period.faculty}</span>
-                                </div>
-                              ) : (
-                                <div className="text-muted text-xs" style={{ textAlign: 'center', opacity: 0.3 }}>VACANT</div>
-                              )}
-                            </td>
-                          ))}
+                        {(() => {
+                          const cells = [];
+                          for (let pIdx = 0; pIdx < dayData.periods.length; pIdx++) {
+                            const period = dayData.periods[pIdx];
+                            
+                            // Check for Lab merging in Venue view
+                            if (period.type === 'Lab' && period.lab !== '-') {
+                              const next1 = dayData.periods[pIdx + 1];
+                              const next2 = dayData.periods[pIdx + 2];
+                              
+                              if (next1?.lab === period.lab && next1?.section === period.section && 
+                                  next2?.lab === period.lab && next2?.section === period.section) {
+                                cells.push(
+                                  <td key={pIdx} colSpan={3} style={{ padding: '0.25rem', height: '100px', borderRight: '1px solid var(--border)', verticalAlign: 'middle' }}>
+                                    <div 
+                                      style={{ 
+                                        backgroundColor: '#eef2ff', // Light Indigo
+                                        border: '2px solid #6366f1',
+                                        borderLeft: '4px solid #6366f1',
+                                        height: '100%',
+                                        width: '100%',
+                                        padding: '0.5rem',
+                                        borderRadius: 'var(--radius-md)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 2px 4px rgba(99, 102, 241, 0.1)'
+                                      }}
+                                    >
+                                      <span className="font-bold text-sm" style={{ color: '#3730a3', textAlign: 'center' }}>
+                                        {period.lab}
+                                      </span>
+                                      <span className="badge badge-primary text-[10px] mt-1" style={{ fontSize: '9px' }}>{period.section}</span>
+                                      <span className="text-[10px] font-semibold mt-1" style={{ color: 'var(--text-main)', opacity: 0.8 }}>{period.faculty}</span>
+                                    </div>
+                                  </td>
+                                );
+                                pIdx += 2;
+                                continue;
+                              }
+                            }
+
+                            cells.push(
+                              <td key={pIdx} style={{ padding: '0.5rem', height: '100px', borderRight: pIdx !== 6 ? '1px solid var(--border)' : 'none', verticalAlign: 'middle' }}>
+                                {period.type === 'Lab' ? (
+                                  <div 
+                                    style={{ 
+                                      backgroundColor: 'rgba(245, 158, 11, 0.15)', 
+                                      height: '100%',
+                                      width: '100%',
+                                      padding: '0.5rem',
+                                      borderRadius: 'var(--radius-md)',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '0.25rem',
+                                      border: '1px solid rgba(245, 158, 11, 0.3)'
+                                    }}
+                                  >
+                                    <span className="font-bold text-xs" style={{ textAlign: 'center', lineHeight: '1.2', color: 'var(--warning-dark)' }}>
+                                      {period.lab}
+                                    </span>
+                                    <span className="badge badge-primary text-[10px] mt-1" style={{ fontSize: '9px' }}>{period.section}</span>
+                                  </div>
+                                ) : (
+                                  <div className="text-muted text-[10px]" style={{ textAlign: 'center' }}>-</div>
+                                )}
+                              </td>
+                            );
+                          }
+                          return cells;
+                        })()}
                         </tr>
                       ))}
                     </tbody>
