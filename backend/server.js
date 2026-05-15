@@ -36,18 +36,18 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'scet_secret_key',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Required for secure cookies on Render
     store: MongoStore.create({
         mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable',
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        // Relaxed settings for testing
-        secure: false, 
-        sameSite: 'lax',
+        secure: true, // MUST be true for SameSite: none
+        sameSite: 'none', // Required for cross-domain cookies
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-});
+}));
 
 // Debug route to check session status
 app.get('/api/debug-session', (req, res) => {
