@@ -30,10 +30,10 @@ const TimetableGrid = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null); // { type: 'sidebar|grid', data: { ... } }
   const [customItems, setCustomItems] = useState([
-    { id: 'counseling', name: 'Counseling', type: 'Special', icon: <Users size={16}/> },
-    { id: 'sports', name: 'Sports', type: 'Special', icon: <Trophy size={16}/> },
-    { id: 'library', name: 'Library', type: 'Special', icon: <Library size={16}/> },
-    { id: 'crt', name: 'CRT', type: 'Special', icon: <GraduationCap size={16}/> },
+    { id: 'counseling', name: 'Counseling', instructor: 'Class Teacher', type: 'Special', icon: <Users size={16}/> },
+    { id: 'sports', name: 'Sports', instructor: 'PD', type: 'Special', icon: <Trophy size={16}/> },
+    { id: 'library', name: 'Library', instructor: 'Librarian', type: 'Special', icon: <Library size={16}/> },
+    { id: 'crt', name: 'CRT', instructor: 'Instructor', type: 'Special', icon: <GraduationCap size={16}/> },
   ]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemInstructor, setNewItemInstructor] = useState('');
