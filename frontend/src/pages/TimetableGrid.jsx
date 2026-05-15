@@ -17,7 +17,8 @@ import {
   Settings2,
   Trophy,
   Library,
-  GraduationCap
+  GraduationCap,
+  Lock
 } from 'lucide-react';
 import api from '../api/axios';
 
@@ -210,20 +211,30 @@ const TimetableGrid = () => {
   };
 
   const handleSemiGA = async () => {
-    if (!confirm('Semi-Auto Generate will keep your manually placed items and fill the empty slots. Proceed?')) return;
+    if (!confirm(
+      'Semi-Auto (GA) will:\n' +
+      '✅ FREEZE all special/custom items you dragged into the grid\n' +
+      '⚡ Fill all remaining empty slots using the Genetic Algorithm\n\n' +
+      'Proceed?'
+    )) return;
+
     setIsGenerating(true);
     try {
+      // Only freeze slots that were manually placed special/custom items
+      // These are identified by having a subject but NO faculty (since special items don't carry faculty)
       const fixedSlots = [];
       data.timetable?.schedule?.forEach(daySchedule => {
         daySchedule.periods.forEach(period => {
-          if (period.subject && period.subject !== '-') {
+          const isSpecialItem = period.subject && period.subject !== '-' && period.type === 'Subject' && !period.faculty;
+          if (isSpecialItem) {
             fixedSlots.push({
               day: daySchedule.day,
               period: period.period,
               type: period.type,
               subject: period.subject,
-              facultyId: period.faculty?._id || period.faculty?.id || null,
-              labId: period.lab?._id || period.lab?.id || null
+              facultyId: null,
+              labId: null,
+              fixed: true  // mark as frozen
             });
           }
         });
@@ -235,8 +246,35 @@ const TimetableGrid = () => {
         generations: 1500
       });
       
-      setData({ ...data, timetable: { ...data.timetable, schedule: res.data.schedule } });
-      alert('Timetable completed successfully!');
+      // Merge back: keep fixed slots, overlay GA results for empty slots
+      const gaSchedule = res.data.schedule;
+      const mergedSchedule = gaSchedule.map(gaDay => {
+        const fixedDay = fixedSlots.filter(fs => fs.day === gaDay.day);
+        if (fixedDay.length === 0) return gaDay;
+
+        const mergedPeriods = [...gaDay.periods];
+        fixedDay.forEach(fixed => {
+          const existingIdx = mergedPeriods.findIndex(p => p.period === fixed.period);
+          const frozenSlot = {
+            period: fixed.period,
+            type: fixed.type,
+            subject: fixed.subject,
+            faculty: null,
+            lab: null,
+            fixed: true
+          };
+          if (existingIdx !== -1) {
+            mergedPeriods[existingIdx] = frozenSlot;
+          } else {
+            mergedPeriods.push(frozenSlot);
+          }
+        });
+        mergedPeriods.sort((a, b) => a.period - b.period);
+        return { ...gaDay, periods: mergedPeriods };
+      });
+
+      setData({ ...data, timetable: { ...data.timetable, schedule: mergedSchedule } });
+      alert(`Timetable completed! ${fixedSlots.length} special slot(s) were frozen, remaining slots filled by GA.`);
     } catch (err) {
       alert('Generation failed: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -295,6 +333,16 @@ const TimetableGrid = () => {
 
   const { section, days, periods, timetable, mappings, labMappings } = data;
 
+  const hasSpecialItems = React.useMemo(() => {
+    if (!timetable?.schedule) return false;
+    for (const day of timetable.schedule) {
+      if (day.periods?.some(p => p.subject && p.subject !== '-' && p.type === 'Subject' && !p.faculty)) {
+        return true;
+      }
+    }
+    return false;
+  }, [timetable]);
+
   return (
     <div className="designer-page">
       <div className="flex justify-between items-center mb-6">
@@ -310,10 +358,22 @@ const TimetableGrid = () => {
             {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
             Full Auto (GA)
           </button>
-          <button onClick={handleSemiGA} className="btn btn-outline border-warning text-warning" disabled={isGenerating}>
-            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
-            Semi-Auto (GA)
-          </button>
+          <div className="relative group">
+            <button
+              onClick={handleSemiGA}
+              className={`btn border-2 ${hasSpecialItems ? 'border-warning text-warning bg-warning bg-opacity-10 hover:bg-opacity-20' : 'border-border text-muted cursor-not-allowed opacity-50'}`}
+              disabled={isGenerating || !hasSpecialItems}
+              title={hasSpecialItems ? 'Freeze special slots and fill remaining with GA' : 'Drag at least one special/custom item into the grid to activate'}
+            >
+              {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+              Semi-Auto (GA)
+            </button>
+            {!hasSpecialItems && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-56 text-center text-xs bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg">
+                Drag special/custom items into the grid first to activate
+              </div>
+            )}
+          </div>
           <button onClick={handleClearGrid} className="btn btn-outline text-danger" title="Clear Grid">
             <Trash2 size={16} /> Clear Grid
           </button>
@@ -439,19 +499,33 @@ const TimetableGrid = () => {
                               onDrop={() => onDrop(day, p)}
                               onContextMenu={(e) => { e.preventDefault(); removeSlot(day, p); }}
                             >
-                              {hasContent ? (
-                                <div 
-                                  className="slot-content" 
-                                  draggable 
-                                  onDragStart={() => onDragGridItem(day, p)}
-                                >
-                                  <div className="slot-subject font-bold">{slot.subject}</div>
-                                  {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
-                                  {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
-                                  {slot.type === 'Lab' && slot.venue && <div className="text-[9px] font-bold text-slate-500">Venue: {slot.venue}</div>}
-                                  <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
-                                </div>
-                              ) : (
+                              {hasContent ? (() => {
+                                const isFixed = slot.fixed || (slot.type === 'Subject' && slot.subject && slot.subject !== '-' && !slot.faculty);
+                                return (
+                                  <div 
+                                    className={`slot-content ${isFixed ? 'fixed-slot' : ''}`}
+                                    draggable={!isFixed}
+                                    onDragStart={() => !isFixed && onDragGridItem(day, p)}
+                                    style={isFixed ? {
+                                      background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))',
+                                      border: '2px solid rgba(245,158,11,0.5)',
+                                      cursor: 'not-allowed'
+                                    } : {}}
+                                  >
+                                    {isFixed && (
+                                      <div className="flex items-center gap-1 mb-1">
+                                        <Lock size={9} className="text-warning" />
+                                        <span className="text-[9px] font-bold text-warning uppercase tracking-wider">Frozen</span>
+                                      </div>
+                                    )}
+                                    <div className="slot-subject font-bold">{slot.subject}</div>
+                                    {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
+                                    {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
+                                    {slot.type === 'Lab' && slot.venue && <div className="text-[9px] font-bold text-slate-500">Venue: {slot.venue}</div>}
+                                    {!isFixed && <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>}
+                                  </div>
+                                );
+                              })() : (
                                 <div className="slot-empty"></div>
                               )}
                             </td>
