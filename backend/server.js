@@ -4,6 +4,7 @@ const session = require('express-session');
 const path = require('path');
 const cors = require('cors');
 const flash = require('connect-flash');
+const MongoStore = require('connect-mongo');
 require('dotenv').config();
 
 const app = express();
@@ -37,9 +38,13 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'scet_secret_key',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_timetable',
+        ttl: 24 * 60 * 60 // 1 day
+    }),
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // true for https
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' || process.env.RENDER === 'true',
+        sameSite: (process.env.NODE_ENV === 'production' || process.env.RENDER === 'true') ? 'none' : 'lax',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
