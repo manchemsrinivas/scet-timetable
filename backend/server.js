@@ -43,13 +43,13 @@ app.use(session({
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        // Only force secure if we are on HTTPS and NOT on localhost
-        secure: true, 
-        sameSite: 'none',
+        // Relaxed settings for testing
+        secure: false, 
+        sameSite: 'lax',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
-}));
+});
 
 // Debug route to check session status
 app.get('/api/debug-session', (req, res) => {
