@@ -302,7 +302,7 @@ const AdminDashboard = () => {
             style={{ width: '200px' }}
           >
             <option value="All">All Departments</option>
-            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <button className="btn btn-outline" onClick={fetchDashboardData}>
             <RefreshCw size={16} />
@@ -443,7 +443,7 @@ const AdminDashboard = () => {
                     onChange={(e) => setSectionForm({...sectionForm, department: e.target.value})}
                   >
                     <option value="">Select Department...</option>
-                    {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+                    {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <button className="btn btn-primary w-full" type="submit">Create Section</button>
@@ -577,7 +577,7 @@ const AdminDashboard = () => {
                       onChange={(e) => setLabForm({...labForm, department: e.target.value})}
                     >
                       <option value="">Select Department...</option>
-                      {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+                      {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                   <button className="btn btn-primary w-full">Create Lab</button>

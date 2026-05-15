@@ -124,7 +124,7 @@ const Register = () => {
                   value={formData.department}
                   onChange={e => setFormData({...formData, department: e.target.value})}
                 >
-                  {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'].map(d => <option key={d} value={d}>{d}</option>)}
+                  {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             )}
