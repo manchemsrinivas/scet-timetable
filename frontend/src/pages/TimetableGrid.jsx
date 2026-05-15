@@ -150,7 +150,7 @@ const TimetableGrid = () => {
         subject: displaySubject,
         faculty: item.faculty 
           ? { _id: item.faculty._id, name: item.faculty.name } 
-          : (item.instructor ? { name: item.instructor } : null),
+          : null,
         lab: item.lab ? { _id: item.lab._id, name: item.lab.name } : null
       };
       targetDayObj.periods.push(newSlot);
