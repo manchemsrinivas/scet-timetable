@@ -39,6 +39,8 @@ const PENALTY = {
   SECTION_PERIOD1_EMPTY: 50_000,
   /** Faculty has continuous classes across any sections (except within the same lab block). */
   FACULTY_CONSECUTIVE_CLASSES: 50_000,
+  /** Section has more than one lab session in a single day. */
+  MORE_THAN_ONE_LAB_PER_DAY: 800_000,
 };
 
 /** Not a real section: holds synthetic periods so non-teaching faculty still participate in slot-1 fairness. */

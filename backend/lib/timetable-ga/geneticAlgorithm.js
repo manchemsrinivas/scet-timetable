@@ -87,6 +87,7 @@ function evaluate(problem, individual) {
     consecutiveLectureSameSubject: 0,
     sameSubjectSameDay: 0,
     facultyConsecutiveClasses: 0,
+    moreThanOneLabPerDay: 0,
   };
 
   let penalty = 0;
@@ -245,6 +246,23 @@ function evaluate(problem, individual) {
           penalty += p;
         }
       }
+    }
+  }
+  // NEW CONSTRAINT: At most one lab session per (section, day)
+  const sectionDayLabs = new Map();
+  for (let i = 0; i < labs.length; i++) {
+    const lab = labs[i];
+    const { day } = individual.labPlacements[i];
+    if (lab.sectionId === PHANTOM_SECTION_ID) continue;
+    const k = `${lab.sectionId}\0${day}`;
+    sectionDayLabs.set(k, (sectionDayLabs.get(k) || 0) + 1);
+  }
+  for (const cnt of sectionDayLabs.values()) {
+    if (cnt > 1) {
+      const extra = cnt - 1;
+      const p = extra * PENALTY.MORE_THAN_ONE_LAB_PER_DAY;
+      breakdown.moreThanOneLabPerDay += p;
+      penalty += p;
     }
   }
 
