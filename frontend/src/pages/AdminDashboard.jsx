@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Layers, FlaskConical, CalendarDays, CheckCircle2, AlertCircle, Trash2, Plus, Download, Play, RefreshCw, Settings2 } from 'lucide-react';
+import { Users, Layers, FlaskConical, CalendarDays, CheckCircle2, AlertCircle, Trash2, Plus, Download, Play, RefreshCw, Settings2, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 
