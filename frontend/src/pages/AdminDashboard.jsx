@@ -1183,6 +1183,7 @@ const AdminDashboard = () => {
               </div>
             )}
           </div>
+        )}
         {activeTab === 'heatmap' && heatmapData && (
           <div className="card">
             <h3 className="text-xl font-bold mb-4">Departmental Conflict Heatmap</h3>
