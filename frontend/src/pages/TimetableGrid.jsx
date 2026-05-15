@@ -139,10 +139,15 @@ const TimetableGrid = () => {
       targetDayObj.periods = targetDayObj.periods.filter(p => p.period !== targetPeriod);
       
       // Add new item
+      const isSpecial = !item.faculty && !item.isLab;
+      const displaySubject = (isSpecial && item.instructor) 
+        ? (item.name.toLowerCase().includes('counseling') ? `${item.name} - ${item.instructor}` : `${item.name} ${item.instructor}`)
+        : item.name;
+
       const newSlot = {
         period: targetPeriod,
         type: item.isLab ? 'Lab' : 'Subject',
-        subject: item.name,
+        subject: displaySubject,
         faculty: item.faculty 
           ? { _id: item.faculty._id, name: item.faculty.name } 
           : (item.instructor ? { name: item.instructor } : null),
