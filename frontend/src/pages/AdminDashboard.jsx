@@ -366,14 +366,26 @@ const AdminDashboard = () => {
                                 onChange={() => handleSubjectToggle(sub._id, s.subjectName)}
                                 className="accent-primary"
                               />
-                              <div className="flex flex-col">
-                                <span className={sub.status === 'Approved' && sub.allottedSubjects?.includes(s.subjectName) ? 'font-bold text-success' : ''}>
-                                  [P{s.priority || idx+1}] {s.subjectName}
-                                </span>
-                                <div className="flex gap-2 text-[10px] mt-0.5 opacity-75">
-                                  {s.timesHandled > 0 && <span className="bg-light px-1 rounded">Exp: {s.timesHandled}x</span>}
-                                  {s.certifications && <span className="bg-primary-light text-primary px-1 rounded">{s.certifications}</span>}
+                              <div className="flex flex-col py-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={sub.status === 'Approved' && sub.allottedSubjects?.includes(s.subjectName) ? 'font-bold text-success' : 'font-medium'}>
+                                    P{s.priority || idx+1}: {s.subjectName}
+                                  </span>
                                 </div>
+                                {(s.timesHandled > 0 || s.certifications) && (
+                                  <div className="flex flex-wrap gap-1 mt-1 pl-2 border-left" style={{borderLeft: '2px solid var(--border)', marginLeft: '4px'}}>
+                                    {s.timesHandled > 0 && (
+                                      <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-sm font-semibold" style={{background: '#f1f5f9', color: '#475569'}}>
+                                        Exp: {s.timesHandled} Times
+                                      </span>
+                                    )}
+                                    {s.certifications && (
+                                      <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-sm font-semibold italic" style={{background: '#eff6ff', color: '#2563eb'}}>
+                                        📜 {s.certifications}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </label>
                           ))}
