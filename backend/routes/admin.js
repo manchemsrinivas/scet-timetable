@@ -456,4 +456,15 @@ router.get('/venue-timetable/:venueName', ensureAdmin, async (req, res) => {
     }
 });
 
+// Delete Submission
+router.post('/submissions/delete/:id', ensureAdmin, async (req, res) => {
+    try {
+        await Willingness.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: 'Submission removed successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error removing submission' });
+    }
+});
+
 module.exports = router;

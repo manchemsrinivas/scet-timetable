@@ -174,6 +174,16 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteSubmission = async (id) => {
+    if (!confirm('Are you sure you want to delete this submission? This will remove all allotted subjects for this faculty.')) return;
+    try {
+      await api.post(`/admin/submissions/delete/${id}`);
+      fetchDashboardData();
+    } catch (err) {
+      alert('Failed to delete submission');
+    }
+  };
+
   const handleApprove = async (id) => {
     try {
       await api.post(`/admin/approve/${id}`);
@@ -376,6 +386,13 @@ const AdminDashboard = () => {
                           ) : (
                             <span className="text-xs text-success font-bold">Pair Fixed</span>
                           )}
+                          <button 
+                            onClick={() => handleDeleteSubmission(sub._id)} 
+                            className="btn text-danger p-1 ms-2"
+                            title="Delete Submission"
+                          >
+                            <Trash2 size={16}/>
+                          </button>
                         </div>
                       </td>
                     </tr>
