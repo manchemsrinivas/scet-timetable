@@ -30,16 +30,32 @@ const Login = ({ onLogin }) => {
           align-items: center;
           justify-content: center;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          padding: 1.5rem;
         }
         .auth-card {
           width: 100%;
-          max-width: 400px;
+          max-width: 440px;
           background: white;
-          padding: 2.5rem;
-          border-radius: var(--radius-xl);
-          box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+          padding: 3rem 2.5rem;
+          border-radius: 1.5rem;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+          border: 1px solid var(--border);
+        }
+        .back-link {
+          position: absolute;
+          top: 2rem;
+          left: 2rem;
+          color: var(--secondary);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          font-weight: 500;
         }
       `}</style>
+      <Link to="/" className="back-link">
+        ← Back to Home
+      </Link>
       <div className="auth-card">
         <h2 className="font-bold text-2xl mb-2 text-center">Welcome Back</h2>
         <p className="text-muted text-center mb-8">Sign in to your SCET Portal account</p>

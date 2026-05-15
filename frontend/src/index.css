@@ -184,3 +184,5 @@ body {
 .justify-between { justify-content: space-between; }
 .gap-2 { gap: 0.5rem; }
 .mt-4 { margin-top: 1rem; }
+.w-full { width: 100%; }
+.min-h-screen { min-height: 100vh; }

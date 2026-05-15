@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import AdminDashboard from './pages/AdminDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
 import TimetableGrid from './pages/TimetableGrid';
+import Welcome from './pages/Welcome';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -63,8 +64,8 @@ const App = () => {
             
             {/* Protected Faculty Routes */}
             <Route path="/faculty" element={user?.role === 'faculty' ? <FacultyDashboard /> : <Navigate to="/login" />} />
-
-            <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/faculty') : '/login'} />} />
+            
+            <Route path="/" element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/faculty'} /> : <Welcome />} />
           </Routes>
         </main>
       </div>
