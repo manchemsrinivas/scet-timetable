@@ -29,6 +29,7 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
+        console.log(`[Login] Setting session for user: ${user.email}, SessionID: ${req.sessionID}`);
         req.session.user = { 
             id: user._id.toString(), 
             name: user.name, 
@@ -38,9 +39,10 @@ router.post('/login', async (req, res) => {
         
         req.session.save((err) => {
             if (err) {
-                console.error('Session save error:', err);
+                console.error('[Login] Session save error:', err);
                 return res.status(500).json({ error: 'Login failed to save session' });
             }
+            console.log(`[Login] Session saved successfully for: ${user.email}`);
             res.json({ success: true, user: req.session.user });
         });
     } catch (err) {

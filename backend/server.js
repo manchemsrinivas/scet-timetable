@@ -41,11 +41,12 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_time
     // Session configuration (moved inside connection)
     app.use(session({
         secret: process.env.SESSION_SECRET || 'scet_secret_key',
-        resave: false,
+        resave: true, // Force resave to ensure database update
         saveUninitialized: false,
         proxy: true,
         store: MongoStore.create({
             client: mongoose.connection.getClient(),
+            collectionName: 'sessions',
             ttl: 24 * 60 * 60
         }),
         cookie: {
