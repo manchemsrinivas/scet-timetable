@@ -220,7 +220,7 @@ const TimetableGrid = () => {
       });
 
       const res = await api.post('/admin/timetable/semi-auto-generate', { 
-        sectionId: id,
+        sectionId,
         fixedSlots,
         generations: 1500
       });

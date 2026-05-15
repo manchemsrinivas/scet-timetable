@@ -286,7 +286,7 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
         }
         res.json({ ok: true, fitness: gaResult.fitness, schedule });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(err.statusCode || 500).json({ error: err.message });
     }
 });
 
@@ -389,7 +389,7 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         res.json({ ok: true, fitness: gaResult.fitness, schedule });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: err.message });
+        res.status(err.statusCode || 500).json({ error: err.message });
     }
 });
 
@@ -421,7 +421,7 @@ router.post('/timetable/auto-generate-department', ensureAdmin, async (req, res)
         }
         res.json({ ok: true, fitness: gaResult.fitness, savedCount: saved.length });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        res.status(err.statusCode || 500).json({ error: err.message });
     }
 });
 
