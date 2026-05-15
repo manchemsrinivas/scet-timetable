@@ -1047,10 +1047,9 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
-            );
-            })()}
-          </div>
-        )}
+          )}
+        </div>
+      )}
         {activeTab === 'lab-venue-timetables' && (
           <div className="card">
             <div className="flex justify-between items-center mb-6">

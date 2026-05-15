@@ -366,6 +366,7 @@ const TimetableGrid = () => {
                     {periods.map(p => <th key={p}>Period {p}</th>)}
                   </tr>
                 </thead>
+                <tbody>
                   {days.map((day) => (
                     <tr key={day}>
                       <td className="day-name">{day}</td>
