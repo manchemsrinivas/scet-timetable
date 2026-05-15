@@ -76,9 +76,13 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/scet_time
     app.use('/api/admin', require('./routes/admin'));
     app.use('/api/ga', require('./routes/apiGa'));
 
-    // Basic health check
-    app.get('/api/health', (req, res) => {
-        res.json({ status: 'ok', message: 'SCET Timetable API is running' });
+    // Serve static files from the React app
+    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+    // The "catchall" handler: for any request that doesn't
+    // match one above, send back React's index.html file.
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
     });
 
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

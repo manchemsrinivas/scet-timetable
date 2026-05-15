@@ -1,0 +1,9 @@
+{
+  "name": "scet-timetable",
+  "version": "1.0.0",
+  "description": "Full Stack Timetable Management System",
+  "scripts": {
+    "build": "npm install --prefix backend && npm install --prefix frontend && npm run build --prefix frontend",
+    "start": "npm start --prefix backend"
+  }
+}
