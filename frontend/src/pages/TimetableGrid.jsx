@@ -301,39 +301,82 @@ const TimetableGrid = () => {
                     {periods.map(p => <th key={p}>Period {p}</th>)}
                   </tr>
                 </thead>
-                <tbody>
                   {days.map((day) => (
                     <tr key={day}>
                       <td className="day-name">{day}</td>
-                      {periods.map((p) => {
-                        const slot = timetable?.schedule?.find(s => s.day === day)?.periods?.find(pr => pr.period === p);
-                        const hasContent = slot && (slot.subject || slot.lab);
+                      {(() => {
+                        const cells = [];
+                        const daySchedule = timetable?.schedule?.find(s => s.day === day);
                         
-                        return (
-                          <td 
-                            key={p} 
-                            className={`grid-cell ${hasContent ? 'has-content' : ''}`}
-                            onDragOver={onDragOver}
-                            onDrop={() => onDrop(day, p)}
-                            onContextMenu={(e) => { e.preventDefault(); removeSlot(day, p); }}
-                          >
-                            {hasContent ? (
-                              <div 
-                                className="slot-content" 
-                                draggable 
-                                onDragStart={() => onDragGridItem(day, p)}
-                              >
-                                <div className="slot-subject font-bold">{slot.subject}</div>
-                                {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
-                                {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
-                                <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
-                              </div>
-                            ) : (
-                              <div className="slot-empty"></div>
-                            )}
-                          </td>
-                        );
-                      })}
+                        for (let pIdx = 0; pIdx < periods.length; pIdx++) {
+                          const p = periods[pIdx];
+                          const slot = daySchedule?.periods?.find(pr => pr.period === p);
+                          const hasContent = slot && (slot.subject || slot.lab);
+
+                          // Check if this is the start of a 3-period Lab block
+                          if (slot?.type === 'Lab') {
+                            const next1 = daySchedule?.periods?.find(pr => pr.period === periods[pIdx + 1]);
+                            const next2 = daySchedule?.periods?.find(pr => pr.period === periods[pIdx + 2]);
+                            
+                            // Check if next 2 slots are the same lab (matching names or objects)
+                            const labName = typeof slot.lab === 'object' ? slot.lab.name : slot.lab;
+                            const next1Name = next1 ? (typeof next1.lab === 'object' ? next1.lab?.name : next1.lab) : null;
+                            const next2Name = next2 ? (typeof next2.lab === 'object' ? next2.lab?.name : next2.lab) : null;
+
+                            if (next1Name === labName && next2Name === labName) {
+                              cells.push(
+                                <td 
+                                  key={p} 
+                                  colSpan={3}
+                                  className="grid-cell has-content lab-cell-merged"
+                                  onDragOver={onDragOver}
+                                  onDrop={() => onDrop(day, p)}
+                                >
+                                  <div className="slot-content lab-content-merged">
+                                    <div className="slot-subject font-bold text-base text-warning-dark">{labName}</div>
+                                    {slot.faculty?.name && (
+                                      <div className="slot-faculty text-xs font-semibold mt-1">
+                                        Faculty: {slot.faculty.name}
+                                      </div>
+                                    )}
+                                    <div className="text-[10px] uppercase font-bold text-muted mt-2 tracking-wider opacity-60">3-Hour Lab Session</div>
+                                    <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
+                                  </div>
+                                </td>
+                              );
+                              pIdx += 2; // Skip next two cells
+                              continue;
+                            }
+                          }
+
+                          // Default single period cell
+                          cells.push(
+                            <td 
+                              key={p} 
+                              className={`grid-cell ${hasContent ? 'has-content' : ''}`}
+                              onDragOver={onDragOver}
+                              onDrop={() => onDrop(day, p)}
+                              onContextMenu={(e) => { e.preventDefault(); removeSlot(day, p); }}
+                            >
+                              {hasContent ? (
+                                <div 
+                                  className="slot-content" 
+                                  draggable 
+                                  onDragStart={() => onDragGridItem(day, p)}
+                                >
+                                  <div className="slot-subject font-bold">{slot.subject}</div>
+                                  {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
+                                  {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
+                                  <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
+                                </div>
+                              ) : (
+                                <div className="slot-empty"></div>
+                              )}
+                            </td>
+                          );
+                        }
+                        return cells;
+                      })()}
                     </tr>
                   ))}
                 </tbody>
@@ -414,6 +457,10 @@ const TimetableGrid = () => {
         .grid-cell:hover { background: #f1f5f9; }
         .grid-cell.has-content { background: white; }
         
+        .lab-cell-merged { background-color: #fffbeb !important; border: 2px solid var(--warning) !important; padding: 0 !important; }
+        .lab-content-merged { padding: 1rem !important; border-left: 4px solid var(--warning); height: 100%; display: flex; flexDirection: column; justify-content: center; }
+        .text-warning-dark { color: #92400e; }
+
         .slot-content { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.125rem; height: 100%; justify-content: center; cursor: grab; position: relative; }
         .slot-content:active { cursor: grabbing; }
         .slot-subject { font-size: 0.8125rem; color: var(--primary); line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
