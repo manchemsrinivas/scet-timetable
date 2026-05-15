@@ -16,8 +16,8 @@ app.set('trust proxy', 1);
 // CORS configuration
 app.use(cors({
     origin: function(origin, callback) {
+        if (origin) console.log('Incoming request from origin:', origin);
         // Allow all origins for now as requested ("making backend public")
-        // In production, you should ideally restrict this to your frontend URL
         callback(null, true);
     },
     credentials: true
@@ -43,13 +43,31 @@ app.use(session({
         ttl: 24 * 60 * 60 // 1 day
     }),
     cookie: {
-        // Force secure: true if we are on Render (HTTPS)
+        // Only force secure if we are on HTTPS and NOT on localhost
         secure: true, 
         sameSite: 'none',
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
+// Debug route to check session status
+app.get('/api/debug-session', (req, res) => {
+    res.json({
+        sessionID: req.sessionID,
+        hasUser: !!req.session.user,
+        user: req.session.user || null,
+        cookie: req.session.cookie,
+        headers: {
+            origin: req.headers.origin,
+            cookie: !!req.headers.cookie // Don't show actual cookie for security
+        },
+        env: {
+            NODE_ENV: process.env.NODE_ENV,
+            RENDER: process.env.RENDER
+        }
+    });
+});
 
 // API Routes
 app.use('/api/auth', require('./routes/auth'));
