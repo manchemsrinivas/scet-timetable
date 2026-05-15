@@ -366,9 +366,15 @@ const AdminDashboard = () => {
                                 onChange={() => handleSubjectToggle(sub._id, s.subjectName)}
                                 className="accent-primary"
                               />
-                              <span className={sub.status === 'Approved' && sub.allottedSubjects?.includes(s.subjectName) ? 'font-bold text-success' : ''}>
-                                [P{s.priority || idx+1}] {s.subjectName}
-                              </span>
+                              <div className="flex flex-col">
+                                <span className={sub.status === 'Approved' && sub.allottedSubjects?.includes(s.subjectName) ? 'font-bold text-success' : ''}>
+                                  [P{s.priority || idx+1}] {s.subjectName}
+                                </span>
+                                <div className="flex gap-2 text-[10px] mt-0.5 opacity-75">
+                                  {s.timesHandled > 0 && <span className="bg-light px-1 rounded">Exp: {s.timesHandled}x</span>}
+                                  {s.certifications && <span className="bg-primary-light text-primary px-1 rounded">{s.certifications}</span>}
+                                </div>
+                              </div>
                             </label>
                           ))}
                         </div>

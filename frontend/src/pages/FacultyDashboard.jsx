@@ -27,7 +27,9 @@ const FacultyDashboard = () => {
   const [formData, setFormData] = useState({
     experience: '',
     prefs: ['', '', '', '', ''],
-    customPrefs: ['', '', '', '', '']
+    customPrefs: ['', '', '', '', ''],
+    subjectExp: ['', '', '', '', ''],
+    subjectCert: ['', '', '', '', '']
   });
 
   const getAvailableSubjects = (currentIndex) => {
@@ -58,7 +60,12 @@ const FacultyDashboard = () => {
       const subjectArray = formData.prefs.map((p, idx) => {
         let name = p;
         if (p === 'custom') name = formData.customPrefs[idx];
-        return { subjectName: name, priority: idx + 1 };
+        return { 
+          subjectName: name, 
+          priority: idx + 1,
+          timesHandled: Number(formData.subjectExp[idx] || 0),
+          certifications: formData.subjectCert[idx] || ''
+        };
       }).filter(s => s.subjectName && s.subjectName.trim() !== '');
 
       await api.post('/faculty/willingness', {
@@ -181,7 +188,7 @@ const FacultyDashboard = () => {
                       {formData.prefs[idx] === 'custom' && (
                         <input 
                           type="text" 
-                          className="input input-sm w-full"
+                          className="input input-sm w-full mb-2"
                           placeholder="Type custom subject name..."
                           required
                           value={formData.customPrefs[idx]}
@@ -192,6 +199,38 @@ const FacultyDashboard = () => {
                           }}
                         />
                       )}
+
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <label className="text-[10px] uppercase font-bold text-muted">Experience (Times Handled)</label>
+                          <input 
+                            type="number" 
+                            className="input input-sm w-full"
+                            placeholder="e.g. 2"
+                            min="0"
+                            value={formData.subjectExp[idx]}
+                            onChange={e => {
+                              const newExp = [...formData.subjectExp];
+                              newExp[idx] = e.target.value;
+                              setFormData({...formData, subjectExp: newExp});
+                            }}
+                          />
+                        </div>
+                        <div className="flex-[2]">
+                          <label className="text-[10px] uppercase font-bold text-muted">Certifications (NPTEL/Others)</label>
+                          <input 
+                            type="text" 
+                            className="input input-sm w-full"
+                            placeholder="e.g. NPTEL Elite+Gold"
+                            value={formData.subjectCert[idx]}
+                            onChange={e => {
+                              const newCert = [...formData.subjectCert];
+                              newCert[idx] = e.target.value;
+                              setFormData({...formData, subjectCert: newCert});
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
