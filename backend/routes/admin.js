@@ -467,4 +467,45 @@ router.post('/submissions/delete/:id', ensureAdmin, async (req, res) => {
     }
 });
 
+// Heatmap Analytics: Get departmental load per slot
+router.get('/analytics/heatmap', ensureAdmin, async (req, res) => {
+  try {
+    const { department } = req.query;
+    const query = department && department !== 'All' ? { department } : {};
+    
+    const timetables = await Timetable.find(query);
+    const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const slots = 7;
+    
+    // Initialize heatmap grid (count of faculty teaching per slot)
+    const heatmap = Array.from({ length: 6 }, () => Array(slots).fill(0));
+    
+    timetables.forEach(tt => {
+      if (tt.schedule) {
+        tt.schedule.forEach(dayData => {
+          const dIdx = daysArr.indexOf(dayData.day);
+          if (dIdx !== -1) {
+            dayData.periods.forEach(p => {
+              if (p.subject && p.subject !== '-') {
+                const sIdx = p.period - 1;
+                if (sIdx >= 0 && sIdx < slots) {
+                  heatmap[dIdx][sIdx]++;
+                }
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Get total approved faculty count for percentage calculation
+    const totalFacultyCount = await User.countDocuments({ ...query, role: 'faculty' });
+
+    res.json({ heatmap, totalFaculty: totalFacultyCount || 1, days: daysArr });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Heatmap calculation failed' });
+  }
+});
+
 module.exports = router;

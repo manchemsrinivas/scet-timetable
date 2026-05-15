@@ -80,6 +80,7 @@ const AdminDashboard = () => {
   });
   
   const [selectedSubjects, setSelectedSubjects] = useState({});
+  const [heatmapData, setHeatmapData] = useState(null);
 
   const handleSubjectToggle = (submissionId, subjectName) => {
     setSelectedSubjects(prev => {
@@ -149,6 +150,21 @@ const AdminDashboard = () => {
       fetchVenueSchedule(selectedVenueName);
     }
   }, [selectedVenueName]);
+
+  const fetchHeatmapData = async () => {
+    try {
+      const res = await api.get(`/admin/analytics/heatmap?department=${deptFilter}`);
+      setHeatmapData(res.data);
+    } catch (err) {
+      console.error('Failed to fetch heatmap data');
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'heatmap') {
+      fetchHeatmapData();
+    }
+  }, [activeTab, deptFilter]);
 
   const exportFacultyCSV = () => {
     if (!facultyScheduleData) return;
@@ -365,6 +381,7 @@ const AdminDashboard = () => {
         <TabBtn id="timetables" label="Timetables" active={activeTab} set={handleTabChange} icon={<CalendarDays size={16}/>} />
         <TabBtn id="faculty-timetables" label="Faculty Timetables" active={activeTab} set={handleTabChange} icon={<Users size={16}/>} />
         <TabBtn id="lab-venue-timetables" label="Lab Venue Timetables" active={activeTab} set={handleTabChange} icon={<FlaskConical size={16}/>} />
+        <TabBtn id="heatmap" label="Conflict Heatmap" active={activeTab} set={handleTabChange} icon={<AlertCircle size={16}/>} />
       </div>
 
       <div className="tab-pane mt-6">
@@ -1092,6 +1109,73 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
+          </div>
+        {activeTab === 'heatmap' && heatmapData && (
+          <div className="card">
+            <h3 className="text-xl font-bold mb-4">Departmental Conflict Heatmap</h3>
+            <p className="text-muted text-sm mb-6">Showing faculty load across all sections in the {deptFilter === 'All' ? 'entire institution' : deptFilter + ' department'}. High intensity indicates high workload/conflict risk.</p>
+            
+            <div className="table-container" style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+              <table className="table" style={{ minWidth: '800px', width: '100%', tableLayout: 'fixed' }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: '120px', textAlign: 'center', borderRight: '1px solid var(--border)' }}>Day / Period</th>
+                    {[1, 2, 3, 4, 5, 6, 7].map(p => (
+                      <th key={p} style={{ textAlign: 'center', borderRight: p !== 7 ? '1px solid var(--border)' : 'none' }}>Period {p}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {heatmapData.days.map((day, dIdx) => (
+                    <tr key={day}>
+                      <td className="font-bold" style={{ textAlign: 'center', borderRight: '1px solid var(--border)', background: 'var(--bg-main)' }}>
+                        {day}
+                      </td>
+                      {heatmapData.heatmap[dIdx].map((count, sIdx) => {
+                        const percentage = (count / heatmapData.totalFaculty) * 100;
+                        let bgColor = '#f8fafc'; // Default empty
+                        let textColor = 'var(--text-muted)';
+                        
+                        if (count > 0) {
+                          if (percentage < 30) {
+                            bgColor = '#dcfce7'; // Light green
+                            textColor = '#166534';
+                          } else if (percentage < 70) {
+                            bgColor = '#fef9c3'; // Light yellow
+                            textColor = '#854d0e';
+                          } else {
+                            bgColor = '#fee2e2'; // Light red
+                            textColor = '#991b1b';
+                          }
+                        }
+
+                        return (
+                          <td key={sIdx} style={{ 
+                            padding: '0.5rem', 
+                            height: '80px', 
+                            borderRight: sIdx !== 6 ? '1px solid var(--border)' : 'none', 
+                            verticalAlign: 'middle',
+                            backgroundColor: bgColor,
+                            transition: 'all 0.3s'
+                          }}>
+                            <div className="flex flex-col items-center justify-center">
+                              <span className="font-bold text-lg" style={{ color: textColor }}>{count}</span>
+                              <span className="text-[10px] opacity-60 font-semibold" style={{ color: textColor }}>{Math.round(percentage)}% LOAD</span>
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 flex gap-6 text-xs font-semibold uppercase tracking-wider">
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{background: '#dcfce7'}}></div> Low Load (&lt;30%)</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{background: '#fef9c3'}}></div> Medium Load (30-70%)</div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{background: '#fee2e2'}}></div> High Conflict Risk (&gt;70%)</div>
+            </div>
           </div>
         )}
       </div>
