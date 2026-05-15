@@ -81,6 +81,10 @@ const AdminDashboard = () => {
   
   const [selectedSubjects, setSelectedSubjects] = useState({});
   const [heatmapData, setHeatmapData] = useState(null);
+  const [submissionFilters, setSubmissionFilters] = useState({
+    subjectSearch: '',
+    sortBy: 'default' // default, totalExp, priority
+  });
 
   const handleSubjectToggle = (submissionId, subjectName) => {
     setSelectedSubjects(prev => {
@@ -385,21 +389,88 @@ const AdminDashboard = () => {
       </div>
 
       <div className="tab-pane mt-6">
-        {activeTab === 'submissions' && (
-          <div className="card">
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Faculty Details</th>
-                    <th>Department</th>
-                    <th>Preferences (Check to Select)</th>
-                    <th>Status</th>
-                    <th className="text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.submissions.map(sub => (
+        {activeTab === 'submissions' && (() => {
+          let filtered = [...data.submissions];
+          
+          // Apply subject filter
+          if (submissionFilters.subjectSearch) {
+            filtered = filtered.filter(sub => 
+              sub.subjects.some(s => s.subjectName.toLowerCase().includes(submissionFilters.subjectSearch.toLowerCase()))
+            );
+          }
+
+          // Apply sorting
+          filtered.sort((a, b) => {
+            if (submissionFilters.sortBy === 'totalExp') {
+              return (b.totalYearsExperience || 0) - (a.totalYearsExperience || 0);
+            }
+            if (submissionFilters.sortBy === 'priority') {
+              // Find the highest priority matching the search if applicable
+              const getTopPriority = (sub) => {
+                const matches = sub.subjects.filter(s => 
+                  s.subjectName.toLowerCase().includes(submissionFilters.subjectSearch.toLowerCase())
+                );
+                return matches.length > 0 ? Math.min(...matches.map(m => m.priority || 99)) : 99;
+              };
+              return getTopPriority(a) - getTopPriority(b);
+            }
+            return 0;
+          });
+
+          return (
+            <div className="card">
+              <div className="flex flex-wrap gap-4 mb-6 p-4 bg-light rounded-xl print-hide">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="text-[10px] uppercase font-bold text-muted mb-1 block">Filter by Subject</label>
+                  <div className="relative">
+                    <BookOpen size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+                    <input 
+                      type="text" 
+                      className="select w-full pl-10" 
+                      placeholder="e.g. Data Structures..."
+                      value={submissionFilters.subjectSearch}
+                      onChange={(e) => setSubmissionFilters({...submissionFilters, subjectSearch: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="w-[200px]">
+                  <label className="text-[10px] uppercase font-bold text-muted mb-1 block">Sort By</label>
+                  <select 
+                    className="select w-full"
+                    value={submissionFilters.sortBy}
+                    onChange={(e) => setSubmissionFilters({...submissionFilters, sortBy: e.target.value})}
+                  >
+                    <option value="default">Submission Date</option>
+                    <option value="totalExp">Total Experience</option>
+                    <option value="priority">Subject Priority</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button 
+                    className="btn btn-outline btn-sm h-[42px]"
+                    onClick={() => setSubmissionFilters({ subjectSearch: '', sortBy: 'default' })}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Faculty Details</th>
+                      <th>Department</th>
+                      <th>Preferences (Certifications & Exp)</th>
+                      <th>Status</th>
+                      <th className="text-end">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr><td colSpan={5} className="text-center py-20 text-muted">No submissions found matching your filters</td></tr>
+                    ) : (
+                      filtered.map(sub => (
                     <tr key={sub._id}>
                       <td>
                         <div className="flex items-center gap-3">
@@ -470,12 +541,14 @@ const AdminDashboard = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === 'sections' && (
           <div className="grid col-2 gap-6">
