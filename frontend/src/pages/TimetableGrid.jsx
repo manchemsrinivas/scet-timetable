@@ -333,15 +333,15 @@ const TimetableGrid = () => {
 
   const { section, days, periods, timetable, mappings, labMappings } = data;
 
-  const hasSpecialItems = React.useMemo(() => {
-    if (!timetable?.schedule) return false;
+  let hasSpecialItems = false;
+  if (timetable?.schedule) {
     for (const day of timetable.schedule) {
       if (day.periods?.some(p => p.subject && p.subject !== '-' && p.type === 'Subject' && !p.faculty)) {
-        return true;
+        hasSpecialItems = true;
+        break;
       }
     }
-    return false;
-  }, [timetable]);
+  }
 
   return (
     <div className="designer-page relative">
