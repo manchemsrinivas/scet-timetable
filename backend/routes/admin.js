@@ -327,7 +327,8 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
                 sectionId,
                 facultyId: fs.facultyId || null,
                 subjectId: fs.subject,
-                kind: fs.type === 'Lab' ? 'lab' : 'lecture'
+                kind: fs.type === 'Lab' ? 'lab' : 'lecture',
+                roomId: fs.labId || null
             });
 
             if (fs.type === 'Lab') {

@@ -255,7 +255,7 @@ function evaluate(problem, individual) {
           // Cross-section consecutive: much higher penalty to strongly discourage
           const crossSection = e1.sectionId !== e2.sectionId;
           const p = crossSection
-            ? PENALTY.FACULTY_CONSECUTIVE_CLASSES * 4
+            ? PENALTY.FACULTY_CONSECUTIVE_CLASSES * 10
             : PENALTY.FACULTY_CONSECUTIVE_CLASSES;
           breakdown.facultyConsecutiveClasses += p;
           penalty += p;

@@ -6,11 +6,15 @@ const DEFAULT_SLOTS_PER_DAY = 7;
 
 /**
  * Lab blocks (0-based slot indices): 
+ * Slots 1,2,3 -> indices 0, 1, 2
  * Slots 2,3,4 -> indices 1, 2, 3
+ * Slots 4,5,6 -> indices 3, 4, 5
  * Slots 5,6,7 -> indices 4, 5, 6
  */
 const LAB_BLOCK_SLOT_INDICES = [
+  [0, 1, 2],
   [1, 2, 3],
+  [3, 4, 5],
   [4, 5, 6],
 ];
 
@@ -38,7 +42,7 @@ const PENALTY = {
   /** Section does not have a subject/lab in period 1. */
   SECTION_PERIOD1_EMPTY: 50_000,
   /** Faculty has continuous classes across any sections (except within the same lab block). */
-  FACULTY_CONSECUTIVE_CLASSES: 50_000,
+  FACULTY_CONSECUTIVE_CLASSES: 200_000,
   /** Section has more than one lab session in a single day. */
   MORE_THAN_ONE_LAB_PER_DAY: 800_000,
 };
