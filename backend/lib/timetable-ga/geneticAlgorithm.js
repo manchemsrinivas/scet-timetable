@@ -236,7 +236,7 @@ function evaluate(problem, individual) {
     }
   }
 
-  // NEW CONSTRAINT: Faculty consecutive classes across all sections
+  // CONSTRAINT: Faculty consecutive classes — higher penalty across different sections
   for (const f of faculty) {
     for (let d = 0; d < days; d++) {
       const fEvents = events.filter((e) => e.facultyId === f.id && e.day === d && !e.phantom);
@@ -248,12 +248,15 @@ function evaluate(problem, individual) {
         const e1 = slotToEvent.get(s);
         const e2 = slotToEvent.get(s + 1);
         if (e1 && e2) {
-          // If both are the same lab block, it is naturally continuous, so skip penalty
+          // Lab continuity within the same lab block is fine — skip
           if (e1.kind === 'lab' && e2.kind === 'lab' && e1.labId === e2.labId) {
             continue;
           }
-          // Otherwise, penalize for consecutive teaching
-          const p = PENALTY.FACULTY_CONSECUTIVE_CLASSES;
+          // Cross-section consecutive: much higher penalty to strongly discourage
+          const crossSection = e1.sectionId !== e2.sectionId;
+          const p = crossSection
+            ? PENALTY.FACULTY_CONSECUTIVE_CLASSES * 4
+            : PENALTY.FACULTY_CONSECUTIVE_CLASSES;
           breakdown.facultyConsecutiveClasses += p;
           penalty += p;
         }

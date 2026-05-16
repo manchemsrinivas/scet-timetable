@@ -31,8 +31,8 @@ const TimetableGrid = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null); // { type: 'sidebar|grid', data: { ... } }
   const [customItems, setCustomItems] = useState([
-    { id: 'counseling', name: 'Counseling', instructor: 'Class Teacher', type: 'Special', icon: <Users size={16}/> },
-    { id: 'sports', name: 'Sports', instructor: 'PD', type: 'Special', icon: <Trophy size={16}/> },
+    { id: 'counseling', name: 'Counselling', instructor: 'Class Teacher', type: 'Special', icon: <Users size={16}/> },
+    { id: 'sports', name: 'PD', instructor: 'Sports', type: 'Special', icon: <Trophy size={16}/> },
     { id: 'library', name: 'Library', instructor: 'Librarian', type: 'Special', icon: <Library size={16}/> },
     { id: 'crt', name: 'CRT', instructor: 'Instructor', type: 'Special', icon: <GraduationCap size={16}/> },
   ]);
@@ -211,9 +211,49 @@ const TimetableGrid = () => {
   };
 
   const handleSemiGA = async () => {
+    const LAB_BLOCK_INDICES = [[0,1,2],[4,5,6],[1,2,3],[3,4,5]];
+    const DAYS = data.days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const PERIODS = data.periods || [1,2,3,4,5,6,7];
+
+    // --- Pre-check: count available 3-consecutive free slots per section-day ---
+    const frozenSet = new Set();
+    data.timetable?.schedule?.forEach(daySchedule => {
+      daySchedule.periods.forEach(period => {
+        const isSpecial = period.subject && period.subject !== '-' && period.type === 'Subject' && !period.faculty;
+        if (isSpecial) frozenSet.add(`${daySchedule.day}:${period.period}`);
+      });
+    });
+
+    const numLabs = data.labMappings?.length || 0;
+    let availableLabBlocks = 0;
+    for (const day of DAYS) {
+      const frozenPeriodsOnDay = PERIODS.filter(p => frozenSet.has(`${day}:${p}`)).map(p => p - 1); // 0-indexed
+      for (const block of LAB_BLOCK_INDICES) {
+        const blockFree = block.every(slot => !frozenPeriodsOnDay.includes(slot));
+        if (blockFree) availableLabBlocks++;
+      }
+    }
+
+    let skipLabs = false;
+    if (numLabs > 0 && availableLabBlocks < numLabs) {
+      const proceed = await new Promise(resolve => {
+        const msg =
+          `⚠️ Lab Slot Warning\n\n` +
+          `${numLabs} lab session(s) require 3 consecutive free periods each.\n` +
+          `Only ${availableLabBlocks} valid 3-slot block(s) are available (frozen slots excluded).\n\n` +
+          `Options:\n` +
+          `• Click OK to skip lab scheduling and run GA on subjects only.\n` +
+          `• Click Cancel to stop and manually free up more slots first.`;
+        resolve(confirm(msg));
+      });
+      if (!proceed) return;
+      skipLabs = true;
+    }
+
     if (!confirm(
       'Semi-Auto (GA) will:\n' +
       '✅ FREEZE all special/custom items you dragged into the grid\n' +
+      (skipLabs ? '⚠️  Labs SKIPPED (not enough free 3-slot blocks)\n' : '') +
       '⚡ Fill all remaining empty slots using the Genetic Algorithm\n\n' +
       'Proceed?'
     )) return;
@@ -243,6 +283,7 @@ const TimetableGrid = () => {
       const res = await api.post('/admin/timetable/semi-auto-generate', { 
         sectionId,
         fixedSlots,
+        skipLabs,
         generations: 1500
       });
       
@@ -560,7 +601,7 @@ const TimetableGrid = () => {
         {/* Right Sidebar */}
         <aside className="designer-sidebar right-sidebar print-hide">
           <div className="sidebar-section">
-            <h3>Special & Custom</h3>
+            <h3>Add-Ons</h3>
             <div className="item-list">
               {customItems.map(item => (
                 <div 
@@ -571,7 +612,7 @@ const TimetableGrid = () => {
                 >
                   {item.icon}
                   <div className="flex flex-col">
-                    <span className="font-semibold">{item.instructor || item.name}</span>
+                    <span className="font-semibold">{item.name}</span>
                   </div>
                 </div>
               ))}

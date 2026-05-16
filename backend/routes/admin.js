@@ -292,7 +292,7 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
 
 router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
     try {
-        const { sectionId, fixedSlots, generations, populationSize, weeklySlotsPerSubject } = req.body;
+        const { sectionId, fixedSlots, skipLabs, generations, populationSize, weeklySlotsPerSubject } = req.body;
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
 
         const section = await Section.findById(sectionId);
@@ -362,7 +362,7 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
 
         // Update problem with remaining items and fixed obstacles
         problem.lectures = remainingLectures;
-        problem.labs = remainingLabs;
+        problem.labs = skipLabs ? [] : remainingLabs;  // Skip labs if admin confirmed not enough free slots
         problem.fixedSlots = processedFixed;
 
         const gaResult = await runTimetableGAInWorker(problem, { 
