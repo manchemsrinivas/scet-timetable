@@ -260,21 +260,22 @@ const TimetableGrid = () => {
 
     setIsGenerating(true);
     try {
-      // Only freeze slots that were manually placed special/custom items
-      // These are identified by having a subject but NO faculty (since special items don't carry faculty)
+      // Freeze all slots that currently have content (regular subjects or special add-ons)
       const fixedSlots = [];
       data.timetable?.schedule?.forEach(daySchedule => {
         daySchedule.periods.forEach(period => {
-          const isSpecialItem = period.subject && period.subject !== '-' && period.type === 'Subject' && !period.faculty;
-          if (isSpecialItem) {
+          const hasContent = period.subject && period.subject !== '-';
+          if (hasContent) {
             fixedSlots.push({
               day: daySchedule.day,
               period: period.period,
               type: period.type,
               subject: period.subject,
-              facultyId: null,
-              labId: null,
-              fixed: true  // mark as frozen
+              faculty: period.faculty || null,
+              facultyId: period.faculty?._id || period.facultyId || null,
+              lab: period.lab || null,
+              labId: period.lab?._id || period.labId || null,
+              fixed: true
             });
           }
         });
@@ -284,7 +285,7 @@ const TimetableGrid = () => {
         sectionId,
         fixedSlots,
         skipLabs,
-        generations: 1500
+        generations: 2000
       });
       
       // Merge back: keep fixed slots, overlay GA results for empty slots
@@ -300,8 +301,8 @@ const TimetableGrid = () => {
             period: fixed.period,
             type: fixed.type,
             subject: fixed.subject,
-            faculty: null,
-            lab: null,
+            faculty: fixed.faculty,
+            lab: fixed.lab,
             fixed: true
           };
           if (existingIdx !== -1) {
@@ -315,7 +316,7 @@ const TimetableGrid = () => {
       });
 
       setData({ ...data, timetable: { ...data.timetable, schedule: mergedSchedule } });
-      alert(`Timetable completed! ${fixedSlots.length} special slot(s) were frozen, remaining slots filled by GA.`);
+      alert(`Timetable completed! ${fixedSlots.length} slot(s) were frozen, remaining slots filled by GA.`);
     } catch (err) {
       alert('Generation failed: ' + (err.response?.data?.error || err.message));
     } finally {

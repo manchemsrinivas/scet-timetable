@@ -366,8 +366,8 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
         problem.fixedSlots = processedFixed;
 
         const gaResult = await runTimetableGAInWorker(problem, { 
-            generations: generations ?? 1500, 
-            populationSize: populationSize ?? 80 
+            generations: generations ?? 2000, 
+            populationSize: populationSize ?? 100 
         });
         
         const facultyIds = problem.faculty.map(f => f.id);

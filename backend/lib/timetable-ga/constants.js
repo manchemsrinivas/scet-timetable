@@ -19,9 +19,9 @@ const PENALTY = {
   /** Faculty / section / room double-booking (per extra conflicting event). */
   OVERLAP: 2_000_000,
   /** Lab not using an allowed 3-slot block. */
-  LAB_BLOCK_INVALID: 1_000_000,
+  LAB_BLOCK_INVALID: 5_000_000,
   /** Subject exceeds maxSlotsPerWeek for that section. */
-  SUBJECT_CAP: 500_000,
+  SUBJECT_CAP: 2_000_000,
   /** Section has no class on a weekday. */
   EMPTY_DAY: 10_000,
   /** Faculty never teaches period 1 in the week. */
