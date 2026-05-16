@@ -275,6 +275,7 @@ const TimetableGrid = () => {
               facultyId: period.faculty?._id || period.facultyId || null,
               lab: period.lab || null,
               labId: period.lab?._id || period.labId || null,
+              venue: period.venue || null,
               fixed: true
             });
           }
@@ -303,6 +304,7 @@ const TimetableGrid = () => {
             subject: fixed.subject,
             faculty: fixed.faculty,
             lab: fixed.lab,
+            venue: fixed.venue,
             fixed: true
           };
           if (existingIdx !== -1) {

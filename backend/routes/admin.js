@@ -540,32 +540,24 @@ router.get('/venue-timetable/:venueName', ensureAdmin, async (req, res) => {
             venueSchedule.push({ day, periods: dailyPeriods });
         });
 
-        // Loop through section timetables
+        // Loop through all section timetables to find assignments for this venue
         timetables.forEach(timetable => {
-            const sectionId = timetable.section._id.toString();
-            
             timetable.schedule.forEach(daySchedule => {
                 const vDay = venueSchedule.find(d => d.day === daySchedule.day);
                 if (!vDay) return;
 
                 daySchedule.periods.forEach(period => {
-                    if (period.type !== 'Lab' || !period.lab) return;
-
-                    // Check if this lab session belongs to this venue
-                    const labId = (typeof period.lab === 'object' ? (period.lab._id || period.lab.id) : period.lab)?.toString();
+                    // Check if this period matches the requested venue
+                    // We check both direct venue string and nested venue property
+                    const periodVenue = period.venue || (period.lab && typeof period.lab === 'object' ? period.lab.labVenue : null);
                     
-                    const mapping = venueMappings.find(m => 
-                        m.section._id.toString() === sectionId && 
-                        m.lab._id.toString() === labId
-                    );
-
-                    if (mapping) {
+                    if (periodVenue === venueName) {
                         const vPeriod = vDay.periods.find(p => p.period === period.period);
                         if (vPeriod) {
-                            vPeriod.type = 'Lab';
-                            vPeriod.subject = mapping.lab.name;
-                            vPeriod.lab = mapping.lab.name;
-                            vPeriod.faculty = mapping.faculty.name;
+                            vPeriod.type = period.type;
+                            vPeriod.subject = period.subject;
+                            vPeriod.lab = period.lab;
+                            vPeriod.faculty = period.faculty?.name || period.faculty || 'N/A';
                             vPeriod.section = `${timetable.section.department}-${timetable.section.name}`;
                         }
                     }
