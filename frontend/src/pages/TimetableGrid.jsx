@@ -552,29 +552,23 @@ const TimetableGrid = () => {
                               onContextMenu={(e) => { e.preventDefault(); removeSlot(day, p); }}
                             >
                               {hasContent ? (() => {
-                                const isFixed = slot.fixed || (slot.type === 'Subject' && slot.subject && slot.subject !== '-' && !slot.faculty);
+                                const isAddOn = slot.type === 'Subject' && slot.subject && slot.subject !== '-' && !slot.faculty && !slot.lab;
                                 return (
                                   <div 
-                                    className={`slot-content ${isFixed ? 'fixed-slot' : ''}`}
-                                    draggable={!isFixed}
-                                    onDragStart={() => !isFixed && onDragGridItem(day, p)}
-                                    style={isFixed ? {
-                                      background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05))',
-                                      border: '2px solid rgba(245,158,11,0.5)',
-                                      cursor: 'not-allowed'
+                                    className="slot-content"
+                                    draggable
+                                    onDragStart={() => onDragGridItem(day, p)}
+                                    style={isAddOn ? {
+                                      background: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.04))',
+                                      borderLeft: '3px solid rgba(245,158,11,0.6)',
+                                      cursor: 'grab'
                                     } : {}}
                                   >
-                                    {isFixed && (
-                                      <div className="flex items-center gap-1 mb-1">
-                                        <Lock size={9} className="text-warning" />
-                                        <span className="text-[9px] font-bold text-warning uppercase tracking-wider">Frozen</span>
-                                      </div>
-                                    )}
                                     <div className="slot-subject font-bold">{slot.subject}</div>
                                     {slot.faculty?.name && <div className="slot-faculty text-xs">{slot.faculty.name}</div>}
                                     {slot.lab && <div className="slot-lab text-xs uppercase font-bold text-muted">{typeof slot.lab === 'object' ? slot.lab.name : slot.lab}</div>}
                                     {slot.type === 'Lab' && slot.venue && <div className="text-[9px] font-bold text-slate-500">Venue: {slot.venue}</div>}
-                                    {!isFixed && <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>}
+                                    <button className="remove-btn" onClick={() => removeSlot(day, p)}><Trash2 size={10}/></button>
                                   </div>
                                 );
                               })() : (
