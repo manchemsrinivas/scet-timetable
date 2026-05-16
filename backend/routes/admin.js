@@ -556,7 +556,7 @@ router.get('/venue-timetable/:venueName', ensureAdmin, async (req, res) => {
                         if (vPeriod) {
                             vPeriod.type = period.type;
                             vPeriod.subject = period.subject;
-                            vPeriod.lab = period.lab;
+                            vPeriod.lab = (period.lab && typeof period.lab === 'object') ? period.lab.name : period.lab;
                             vPeriod.faculty = period.faculty?.name || period.faculty || 'N/A';
                             vPeriod.section = `${timetable.section.department}-${timetable.section.name}`;
                         }

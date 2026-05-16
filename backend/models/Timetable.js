@@ -11,7 +11,8 @@ const TimetableSchema = new mongoose.Schema({
             type: { type: String, enum: ['Subject', 'Lab', 'Break', 'Other'], default: 'Subject' },
             subject: { type: String },
             faculty: { type: mongoose.Schema.Types.Mixed }, // Store ID or {id, name}
-            lab: { type: mongoose.Schema.Types.Mixed } // Store ID or name
+            lab: { type: mongoose.Schema.Types.Mixed }, // Store ID or name
+            venue: { type: String }
         }]
     }],
     createdAt: { type: Date, default: Date.now }

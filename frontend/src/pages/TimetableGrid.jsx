@@ -152,7 +152,8 @@ const TimetableGrid = () => {
         faculty: item.faculty 
           ? { _id: item.faculty._id, name: item.faculty.name } 
           : null,
-        lab: item.lab ? { _id: item.lab._id, name: item.lab.name } : null
+        lab: item.lab ? { _id: item.lab._id, name: item.lab.name } : null,
+        venue: item.venue || null
       };
       targetDayObj.periods.push(newSlot);
 
@@ -467,7 +468,7 @@ const TimetableGrid = () => {
                   key={lm._id} 
                   className="draggable-item lab" 
                   draggable 
-                  onDragStart={() => onDragSidebarItem({ name: lm.lab?.name, faculty: lm.faculty, lab: lm.lab, isLab: true })}
+                  onDragStart={() => onDragSidebarItem({ name: lm.lab?.name, faculty: lm.faculty, lab: lm.lab, isLab: true, venue: lm.labVenue })}
                 >
                   <FlaskConical size={14} />
                   <span>{lm.lab?.name}</span>

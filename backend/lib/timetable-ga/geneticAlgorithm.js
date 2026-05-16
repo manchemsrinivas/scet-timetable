@@ -383,6 +383,7 @@ function cellForSlot(problem, events, sectionId, d, s) {
     subjectId: hit.subjectId,
     facultyId: hit.facultyId,
     roomId: hit.roomId,
+    venue: hit.venue || null,
   };
 }
 
