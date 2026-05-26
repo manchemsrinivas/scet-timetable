@@ -4,18 +4,9 @@
 const DEFAULT_DAYS = 6;
 const DEFAULT_SLOTS_PER_DAY = 7;
 
-/**
- * Lab blocks (0-based slot indices): 
- * Slots 1,2,3 -> indices 0, 1, 2
- * Slots 2,3,4 -> indices 1, 2, 3
- * Slots 4,5,6 -> indices 3, 4, 5
- * Slots 5,6,7 -> indices 4, 5, 6
- */
 const LAB_BLOCK_SLOT_INDICES = [
-  [0, 1, 2],
-  [1, 2, 3],
-  [3, 4, 5],
-  [4, 5, 6],
+  [1, 2, 3], // Periods 2, 3, 4
+  [4, 5, 6], // Periods 5, 6, 7
 ];
 
 /** Penalty weights (minimize total penalty). */

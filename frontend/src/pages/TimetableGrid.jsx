@@ -212,7 +212,7 @@ const TimetableGrid = () => {
   };
 
   const handleSemiGA = async () => {
-    const LAB_BLOCK_INDICES = [[0,1,2],[4,5,6],[1,2,3],[3,4,5]];
+    const LAB_BLOCK_INDICES = [[1,2,3],[4,5,6]];
     const DAYS = data.days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const PERIODS = data.periods || [1,2,3,4,5,6,7];
 

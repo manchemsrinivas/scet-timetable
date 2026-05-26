@@ -79,6 +79,7 @@ function expandEvents(problem, individual) {
     problem.fixedSlots.forEach(fs => {
       events.push({
         ...fs,
+        fixedKind: fs.kind,
         kind: 'fixed',
         phantom: false
       });
@@ -270,9 +271,25 @@ function evaluate(problem, individual) {
     const { day } = individual.labPlacements[i];
     if (lab.sectionId === PHANTOM_SECTION_ID) continue;
     const k = `${lab.sectionId}\0${day}`;
-    sectionDayLabs.set(k, (sectionDayLabs.get(k) || 0) + 1);
+    if (!sectionDayLabs.has(k)) {
+      sectionDayLabs.set(k, new Set());
+    }
+    sectionDayLabs.get(k).add(`ga-${lab.id}`);
   }
-  for (const cnt of sectionDayLabs.values()) {
+  
+  // Also count manual/fixed labs in the same section-day
+  events.forEach(e => {
+    if (e.kind === 'fixed' && e.fixedKind === 'lab' && e.sectionId !== PHANTOM_SECTION_ID) {
+      const k = `${e.sectionId}\0${e.day}`;
+      if (!sectionDayLabs.has(k)) {
+        sectionDayLabs.set(k, new Set());
+      }
+      sectionDayLabs.get(k).add(`fixed-${e.subjectId}`);
+    }
+  });
+
+  for (const labSet of sectionDayLabs.values()) {
+    const cnt = labSet.size;
     if (cnt > 1) {
       const extra = cnt - 1;
       const p = extra * PENALTY.MORE_THAN_ONE_LAB_PER_DAY;
