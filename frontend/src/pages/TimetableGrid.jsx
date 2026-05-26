@@ -216,13 +216,32 @@ const TimetableGrid = () => {
     const DAYS = data.days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const PERIODS = data.periods || [1,2,3,4,5,6,7];
 
-    // --- Pre-check: count available 3-consecutive free slots per section-day ---
-    const frozenSet = new Set();
+    // Freeze all slots that currently have content (regular subjects, labs, or custom items)
+    const fixedSlots = [];
     data.timetable?.schedule?.forEach(daySchedule => {
       daySchedule.periods.forEach(period => {
-        const isSpecial = period.subject && period.subject !== '-' && period.type === 'Subject' && !period.faculty;
-        if (isSpecial) frozenSet.add(`${daySchedule.day}:${period.period}`);
+        const hasContent = period.subject && period.subject !== '-';
+        if (hasContent) {
+          fixedSlots.push({
+            day: daySchedule.day,
+            period: period.period,
+            type: period.type,
+            subject: period.subject,
+            faculty: period.faculty || null,
+            facultyId: period.faculty?._id || period.facultyId || null,
+            lab: period.lab || null,
+            labId: period.lab?._id || period.labId || null,
+            venue: period.venue || null,
+            fixed: true
+          });
+        }
       });
+    });
+
+    // --- Pre-check: count available 3-consecutive free slots per section-day ---
+    const frozenSet = new Set();
+    fixedSlots.forEach(fs => {
+      frozenSet.add(`${fs.day}:${fs.period}`);
     });
 
     const numLabs = data.labMappings?.length || 0;
@@ -251,9 +270,10 @@ const TimetableGrid = () => {
       skipLabs = true;
     }
 
+    const numFixed = fixedSlots.length;
     if (!confirm(
       'Semi-Auto (GA) will:\n' +
-      '✅ FREEZE all special/custom items you dragged into the grid\n' +
+      `✅ FREEZE all ${numFixed} slot(s) currently filled in the grid\n` +
       (skipLabs ? '⚠️  Labs SKIPPED (not enough free 3-slot blocks)\n' : '') +
       '⚡ Fill all remaining empty slots using the Genetic Algorithm\n\n' +
       'Proceed?'
@@ -261,28 +281,6 @@ const TimetableGrid = () => {
 
     setIsGenerating(true);
     try {
-      // Freeze all slots that currently have content (regular subjects or special add-ons)
-      const fixedSlots = [];
-      data.timetable?.schedule?.forEach(daySchedule => {
-        daySchedule.periods.forEach(period => {
-          const hasContent = period.subject && period.subject !== '-';
-          if (hasContent) {
-            fixedSlots.push({
-              day: daySchedule.day,
-              period: period.period,
-              type: period.type,
-              subject: period.subject,
-              faculty: period.faculty || null,
-              facultyId: period.faculty?._id || period.facultyId || null,
-              lab: period.lab || null,
-              labId: period.lab?._id || period.labId || null,
-              venue: period.venue || null,
-              fixed: true
-            });
-          }
-        });
-      });
-
       const res = await api.post('/admin/timetable/semi-auto-generate', { 
         sectionId,
         fixedSlots,
@@ -378,16 +376,6 @@ const TimetableGrid = () => {
 
   const { section, days, periods, timetable, mappings, labMappings } = data;
 
-  let hasSpecialItems = false;
-  if (timetable?.schedule) {
-    for (const day of timetable.schedule) {
-      if (day.periods?.some(p => p.subject && p.subject !== '-' && p.type === 'Subject' && !p.faculty)) {
-        hasSpecialItems = true;
-        break;
-      }
-    }
-  }
-
   return (
     <div className="designer-page relative">
       {isGenerating && (
@@ -410,26 +398,24 @@ const TimetableGrid = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleAutoGenerate} className="btn btn-outline" disabled={isGenerating}>
+          <button 
+            onClick={handleAutoGenerate} 
+            className="btn btn-outline border-primary text-primary hover:bg-primary hover:text-white" 
+            disabled={isGenerating}
+            title="Generate a completely new timetable from scratch"
+          >
             {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <Play size={16} />}
             Full Auto (GA)
           </button>
-          <div className="relative group">
-            <button
-              onClick={handleSemiGA}
-              className={`btn border-2 ${hasSpecialItems ? 'border-warning text-warning bg-warning bg-opacity-10 hover:bg-opacity-20' : 'border-border text-muted cursor-not-allowed opacity-50'}`}
-              disabled={isGenerating || !hasSpecialItems}
-              title={hasSpecialItems ? 'Freeze special slots and fill remaining with GA' : 'Drag at least one special/custom item into the grid to activate'}
-            >
-              {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
-              Semi-Auto (GA)
-            </button>
-            {!hasSpecialItems && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50 w-56 text-center text-xs bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg">
-                Drag special/custom items into the grid first to activate
-              </div>
-            )}
-          </div>
+          <button
+            onClick={handleSemiGA}
+            className="btn btn-outline border-warning text-warning hover:bg-warning hover:text-white"
+            disabled={isGenerating}
+            title="Freeze all currently filled slots in the grid and fill remaining with GA"
+          >
+            {isGenerating ? <RefreshCw className="animate-spin" size={16} /> : <RefreshCw size={16} />}
+            Semi-Auto (GA)
+          </button>
           <button onClick={handleClearGrid} className="btn btn-outline text-danger" title="Clear Grid">
             <Trash2 size={16} /> Clear Grid
           </button>
