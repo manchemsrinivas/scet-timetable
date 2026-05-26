@@ -57,12 +57,28 @@ const TimetableGrid = () => {
   const handleAutoGenerate = async () => {
     setIsGenerating(true);
     try {
-      const res = await api.post('/admin/timetable/auto-generate', { 
+      let res = await api.post('/admin/timetable/auto-generate', { 
         sectionId,
         days: 6,
         slotsPerDay: 7,
-        weeklySlotsPerSubject: 5
+        weeklySlotsPerSubject: 5,
+        force: false
       });
+
+      if (res.data.isWarning) {
+        if (!confirm(res.data.message)) {
+          setIsGenerating(false);
+          return;
+        }
+        res = await api.post('/admin/timetable/auto-generate', { 
+          sectionId,
+          days: 6,
+          slotsPerDay: 7,
+          weeklySlotsPerSubject: 5,
+          force: true
+        });
+      }
+
       if (res.data.ok) {
         setData(prev => ({ 
           ...prev, 
@@ -281,12 +297,27 @@ const TimetableGrid = () => {
 
     setIsGenerating(true);
     try {
-      const res = await api.post('/admin/timetable/semi-auto-generate', { 
+      let res = await api.post('/admin/timetable/semi-auto-generate', { 
         sectionId,
         fixedSlots,
         skipLabs,
-        generations: 2000
+        generations: 2000,
+        force: false
       });
+      
+      if (res.data.isWarning) {
+        if (!confirm(res.data.message)) {
+          setIsGenerating(false);
+          return;
+        }
+        res = await api.post('/admin/timetable/semi-auto-generate', { 
+          sectionId,
+          fixedSlots,
+          skipLabs,
+          generations: 2000,
+          force: true
+        });
+      }
       
       // Merge back: keep fixed slots, overlay GA results for empty slots
       const gaSchedule = res.data.schedule;

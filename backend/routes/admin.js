@@ -248,13 +248,108 @@ router.post('/assign/:id', ensureAdmin, async (req, res) => {
     }
 });
 
+// Helper to verify lab venue availability across the week
+async function checkLabVenueAvailability(sectionId, isSemiAuto) {
+    const section = await Section.findById(sectionId);
+    if (!section) return { ok: true };
+
+    const department = section.department;
+
+    // 1. Find target sections in this run
+    let targetSectionIds = [];
+    if (isSemiAuto) {
+        const deptSections = await Section.find({ department });
+        targetSectionIds = deptSections.map(s => s._id.toString());
+    } else {
+        targetSectionIds = [sectionId];
+    }
+
+    // 2. Fetch lab mappings being scheduled in this run
+    const labMappings = await LabMapping.find({ section: { $in: targetSectionIds } })
+        .populate('lab', 'name');
+
+    const neededVenueCounts = {};
+    labMappings.forEach(lm => {
+        const venue = lm.labVenue || (lm.lab && lm.lab.name);
+        if (venue) {
+            neededVenueCounts[venue] = (neededVenueCounts[venue] || 0) + 1;
+        }
+    });
+
+    if (Object.keys(neededVenueCounts).length === 0) {
+        return { ok: true };
+    }
+
+    // 3. Find other scheduled timetables to identify booked blocks
+    const otherTimetables = await Timetable.find({ section: { $nin: targetSectionIds } });
+
+    const venueBookings = {};
+    Object.keys(neededVenueCounts).forEach(v => {
+        venueBookings[v] = new Set();
+    });
+
+    otherTimetables.forEach(tt => {
+        if (!tt.schedule) return;
+        tt.schedule.forEach(daySchedule => {
+            const day = daySchedule.day;
+            if (!daySchedule.periods) return;
+            daySchedule.periods.forEach(p => {
+                if (p.type === 'Lab' && p.venue && venueBookings[p.venue] !== undefined) {
+                    let blockIdx = -1;
+                    if ([2, 3, 4].includes(p.period)) {
+                        blockIdx = 0;
+                    } else if ([5, 6, 7].includes(p.period)) {
+                        blockIdx = 1;
+                    }
+                    if (blockIdx !== -1) {
+                        venueBookings[p.venue].add(`${day}|${blockIdx}`);
+                    }
+                }
+            });
+        });
+    });
+
+    // 4. Validate remaining free blocks against needed count
+    const totalBlocks = 12; // 6 days * 2 blocks per day
+    const warnings = [];
+
+    for (const venue of Object.keys(neededVenueCounts)) {
+        const needed = neededVenueCounts[venue];
+        const bookedCount = venueBookings[venue].size;
+        const available = totalBlocks - bookedCount;
+
+        if (available < needed) {
+            warnings.push(
+                `• Venue "${venue}" needs ${needed} slot(s) but only has ${available} free block(s) available (Periods 2-4 or 5-7) after accounting for other scheduled sections.`
+            );
+        }
+    }
+
+    if (warnings.length > 0) {
+        return {
+            ok: false,
+            message: `⚠️ Lab Venue Capacity Warning:\n\n` +
+                     warnings.join('\n') + `\n\n` +
+                     `Generating now may result in venue conflicts/overlaps.\n\n` +
+                     `Do you want to proceed anyway?`
+        };
+    }
+
+    return { ok: true };
+}
+
 // GA Routes (already JSON based, but ensured consistent output)
 router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
-    // ... logic preserved from monolithic version (it was already JSON-ish)
-    // (Re-using existing logic but ensured res.json is called)
     try {
-        const { sectionId, generations, populationSize, mutationRate, weeklySlotsPerSubject, days, slotsPerDay, firstSlotAllDepartmentFaculty } = req.body || {};
+        const { sectionId, force, generations, populationSize, mutationRate, weeklySlotsPerSubject, days, slotsPerDay, firstSlotAllDepartmentFaculty } = req.body || {};
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
+
+        if (!force) {
+            const check = await checkLabVenueAvailability(sectionId, false);
+            if (!check.ok) {
+                return res.json({ ok: false, isWarning: true, message: check.message });
+            }
+        }
 
         const problem = await buildGaProblemFromDb(sectionId, { 
             weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
@@ -292,11 +387,18 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
 
 router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
     try {
-        const { sectionId, fixedSlots, skipLabs, generations, populationSize, weeklySlotsPerSubject } = req.body;
+        const { sectionId, fixedSlots, skipLabs, force, generations, populationSize, weeklySlotsPerSubject } = req.body;
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
 
         const section = await Section.findById(sectionId);
         if (!section) return res.status(404).json({ error: 'Section not found' });
+
+        if (!force && !skipLabs) {
+            const check = await checkLabVenueAvailability(sectionId, true);
+            if (!check.ok) {
+                return res.json({ ok: false, isWarning: true, message: check.message });
+            }
+        }
 
         let problem = await buildGaProblemForDepartment(section.department, { 
             weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
