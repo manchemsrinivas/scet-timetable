@@ -29,6 +29,7 @@ const TimetableGrid = () => {
   const [loading, setLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [subjectSummary, setSubjectSummary] = useState(null); // { subjects: [{name, count, type}], onConfirm, onCancel }
   const [draggedItem, setDraggedItem] = useState(null); // { type: 'sidebar|grid', data: { ... } }
   const [customItems, setCustomItems] = useState([
     { id: 'counseling', name: 'Counselling', instructor: 'Class Teacher', type: 'Special', icon: <Users size={16}/> },
@@ -227,7 +228,35 @@ const TimetableGrid = () => {
     }
   };
 
+  /* ── Subject-frequency helper ── */
+  const buildSubjectSummary = () => {
+    const counts = {}; // key: subject name, value: { count, type }
+    data.timetable?.schedule?.forEach(daySchedule => {
+      daySchedule.periods.forEach(period => {
+        if (!period.subject || period.subject === '-') return;
+        const name = period.subject;
+        const type = period.type === 'Lab' ? 'Lab' : 'Theory';
+        if (!counts[name]) counts[name] = { count: 0, type };
+        counts[name].count += 1;
+      });
+    });
+    return Object.entries(counts)
+      .map(([name, { count, type }]) => ({ name, count, type }))
+      .sort((a, b) => b.count - a.count);
+  };
+
   const handleSemiGA = async () => {
+    // ── Step 1: Show subject summary popup first ──
+    const subjects = buildSubjectSummary();
+    const userConfirmedSummary = await new Promise(resolve => {
+      setSubjectSummary({
+        subjects,
+        onConfirm: () => { setSubjectSummary(null); resolve(true); },
+        onCancel:  () => { setSubjectSummary(null); resolve(false); }
+      });
+    });
+    if (!userConfirmedSummary) return;
+
     const LAB_BLOCK_INDICES = [[1,2,3],[4,5,6]];
     const DAYS = data.days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     const PERIODS = data.periods || [1,2,3,4,5,6,7];
@@ -403,12 +432,159 @@ const TimetableGrid = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center h-96">Loading Designer...</div>;
+
+  /* ── Subject Summary Modal ── */
+  const SubjectSummaryModal = () => {
+    if (!subjectSummary) return null;
+    const { subjects, onConfirm, onCancel } = subjectSummary;
+    const totalSlots = subjects.reduce((s, x) => s + x.count, 0);
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+      }}>
+        <div style={{
+          background: 'var(--bg-card, #fff)', borderRadius: '1.25rem',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.25)', width: '100%', maxWidth: '520px',
+          overflow: 'hidden', animation: 'popIn 0.22s cubic-bezier(.175,.885,.32,1.275)'
+        }}>
+          {/* Header */}
+          <div style={{
+            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+            padding: '1.25rem 1.5rem', color: '#fff'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                background: 'rgba(255,255,255,0.2)', borderRadius: '0.625rem',
+                padding: '0.5rem', display: 'flex'
+              }}>
+                <BookOpen size={22} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>Subject Grid Analysis</h3>
+                <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.85, marginTop: '2px' }}>
+                  Current slot usage · {totalSlots} filled slot{totalSlots !== 1 ? 's' : ''} detected
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: '1.25rem 1.5rem' }}>
+            {subjects.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📭</div>
+                <p style={{ fontWeight: 600, margin: 0 }}>Grid is empty</p>
+                <p style={{ fontSize: '0.8rem', marginTop: '0.25rem', opacity: 0.7 }}>
+                  GA will fill all slots from scratch.
+                </p>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.875rem' }}>
+                  The following subjects are currently placed in the grid.
+                  Filled slots will be <strong>frozen</strong> before GA runs.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {subjects.map((s, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.75rem',
+                      padding: '0.6rem 0.875rem',
+                      background: s.type === 'Lab' ? 'rgba(245,158,11,0.08)' : 'rgba(79,70,229,0.06)',
+                      borderRadius: '0.625rem',
+                      border: `1px solid ${s.type === 'Lab' ? 'rgba(245,158,11,0.25)' : 'rgba(79,70,229,0.15)'}`
+                    }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
+                        background: s.type === 'Lab' ? '#fef9c3' : 'rgba(79,70,229,0.12)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        {s.type === 'Lab' ? <FlaskConical size={14} color="#92400e" /> : <BookOpen size={14} color="#4f46e5" />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontWeight: 600, fontSize: '0.84rem',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                        }}>{s.name}</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                          {s.type}
+                        </div>
+                      </div>
+                      <div style={{
+                        flexShrink: 0, fontWeight: 700, fontSize: '0.9rem',
+                        background: s.type === 'Lab' ? '#fef3c7' : 'rgba(79,70,229,0.12)',
+                        color: s.type === 'Lab' ? '#92400e' : '#4f46e5',
+                        borderRadius: '0.5rem', padding: '2px 10px', minWidth: '48px', textAlign: 'center'
+                      }}>
+                        ×{s.count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Warning banner */}
+            <div style={{
+              marginTop: '1rem', padding: '0.625rem 0.875rem',
+              background: 'rgba(234,179,8,0.1)', borderRadius: '0.625rem',
+              border: '1px solid rgba(234,179,8,0.3)', fontSize: '0.78rem', color: '#92400e',
+              display: 'flex', gap: '0.5rem', alignItems: 'flex-start'
+            }}>
+              <span style={{ fontSize: '1rem', lineHeight: 1 }}>⚡</span>
+              <span>
+                <strong>Semi-Auto GA</strong> will freeze all {totalSlots} filled slot{totalSlots !== 1 ? 's' : ''} and
+                use the Genetic Algorithm to fill only the remaining empty cells.
+              </span>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            display: 'flex', gap: '0.75rem', padding: '1rem 1.5rem',
+            borderTop: '1px solid var(--border, #e5e7eb)', justifyContent: 'flex-end'
+          }}>
+            <button
+              onClick={onCancel}
+              style={{
+                padding: '0.5rem 1.25rem', border: '1px solid var(--border, #d1d5db)',
+                borderRadius: '0.625rem', background: 'transparent', cursor: 'pointer',
+                fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-muted)'
+              }}
+            >Cancel</button>
+            <button
+              onClick={onConfirm}
+              style={{
+                padding: '0.5rem 1.5rem',
+                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                border: 'none', borderRadius: '0.625rem', cursor: 'pointer',
+                fontWeight: 700, fontSize: '0.875rem', color: '#fff',
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                boxShadow: '0 4px 12px rgba(79,70,229,0.35)'
+              }}
+            >
+              <Play size={15} /> Proceed with GA
+            </button>
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes popIn {
+            from { opacity: 0; transform: scale(0.88) translateY(16px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+          }
+        `}</style>
+      </div>
+    );
+  };
   if (!data) return <div className="p-8 text-center">Error loading data. Please check mappings.</div>;
 
   const { section, days, periods, timetable, mappings, labMappings } = data;
 
   return (
     <div className="designer-page relative">
+      <SubjectSummaryModal />
       {isGenerating && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
           <div className="relative flex items-center justify-center w-24 h-24 mb-4">
