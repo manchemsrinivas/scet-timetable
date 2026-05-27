@@ -17,6 +17,7 @@ function sectionIdString(m) {
  */
 async function assembleGaProblemFromMappings(mappings, labMappings, options = {}) {
   const weeklySlotsPerSubject = options.weeklySlotsPerSubject ?? 5;
+  const subjectFrequencies = options.subjectFrequencies || null; // { subjectName: frequency }
   const days = options.days ?? 6;
   const slotsPerDay = options.slotsPerDay ?? 7;
   const dayLabels =
@@ -59,12 +60,15 @@ async function assembleGaProblemFromMappings(mappings, labMappings, options = {}
   });
 
   const lectures = [];
-  const cap = Math.min(Math.max(1, weeklySlotsPerSubject), 8);
 
   for (const m of mappings) {
     if (!m.faculty || !m.faculty._id) continue;
     const sectionKey = sectionIdString(m);
-    for (let i = 0; i < cap; i++) {
+    // Per-subject frequency: check subjectFrequencies map, then fall back to global
+    const subjectFreq = subjectFrequencies && subjectFrequencies[m.subjectName] != null
+      ? Math.min(Math.max(0, parseInt(subjectFrequencies[m.subjectName]) || 0), 8)
+      : Math.min(Math.max(1, weeklySlotsPerSubject), 8);
+    for (let i = 0; i < subjectFreq; i++) {
       lectures.push({
         id: `lec-${m._id}-${i}`,
         sectionId: sectionKey,
@@ -88,11 +92,14 @@ async function assembleGaProblemFromMappings(mappings, labMappings, options = {}
   for (const m of mappings) {
     const sk = sectionIdString(m);
     const key = `${sk}\0${m.subjectName}`;
+    const subjectFreq = subjectFrequencies && subjectFrequencies[m.subjectName] != null
+      ? Math.min(Math.max(0, parseInt(subjectFrequencies[m.subjectName]) || 0), 8)
+      : Math.min(Math.max(1, weeklySlotsPerSubject), 8);
     if (!subjectsMap.has(key)) {
       subjectsMap.set(key, {
         id: m.subjectName,
         sectionId: sk,
-        maxSlotsPerWeek: cap,
+        maxSlotsPerWeek: subjectFreq,
       });
     }
   }

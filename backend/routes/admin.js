@@ -387,7 +387,7 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
 
 router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
     try {
-        const { sectionId, fixedSlots, skipLabs, force, generations, populationSize, weeklySlotsPerSubject } = req.body;
+        const { sectionId, fixedSlots, skipLabs, force, generations, populationSize, weeklySlotsPerSubject, subjectFrequencies } = req.body;
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
 
         const section = await Section.findById(sectionId);
@@ -402,6 +402,7 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
 
         let problem = await buildGaProblemForDepartment(section.department, { 
             weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
+            subjectFrequencies: subjectFrequencies || null,
             days: 6, 
             slotsPerDay: 7 
         });
