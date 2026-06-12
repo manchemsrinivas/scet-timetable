@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Save, 
-  Download, 
   FileSpreadsheet, 
   FileJson, 
   Play, 
@@ -10,7 +9,6 @@ import {
   RefreshCw, 
   Plus, 
   Trash2, 
-  GripVertical,
   BookOpen,
   FlaskConical,
   Users,
@@ -21,6 +19,261 @@ import {
   Lock
 } from 'lucide-react';
 import api from '../api/axios';
+
+/* ── Subject Summary Modal (with editable GA frequencies) ── */
+const SubjectSummaryModal = ({ subjectSummary }) => {
+  const { frozenSubjects, gaSubjects, onConfirm, onCancel } = subjectSummary;
+  const [frequencies, setFrequencies] = useState(() => {
+    const init = {};
+    gaSubjects.forEach(s => {
+      const key = `${s.name}||${s.faculty}`;
+      init[key] = s.frequency;
+    });
+    return init;
+  });
+  const totalFrozen = frozenSubjects.reduce((s, x) => s + x.count, 0);
+  const totalGaSlots = Object.values(frequencies).reduce((s, v) => s + (parseInt(v) || 0), 0);
+
+  const updateFreq = (key, val) => {
+    const num = Math.max(0, Math.min(8, parseInt(val) || 0));
+    setFrequencies(prev => ({ ...prev, [key]: num }));
+  };
+
+  const handleConfirm = () => {
+    // Build subjectFrequencies map: subjectName -> frequency
+    const freqMap = {};
+    gaSubjects.forEach(s => {
+      const key = `${s.name}||${s.faculty}`;
+      freqMap[s.name] = frequencies[key] ?? s.frequency;
+    });
+    onConfirm(freqMap);
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+    }}>
+      <div style={{
+        background: 'var(--bg-card, #fff)', borderRadius: '1.25rem',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.25)', width: '100%', maxWidth: '620px',
+        overflow: 'hidden', animation: 'popIn 0.22s cubic-bezier(.175,.885,.32,1.275)'
+      }}>
+        {/* Header */}
+        <div style={{
+          background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+          padding: '1.25rem 1.5rem', color: '#fff'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{
+              background: 'rgba(255,255,255,0.2)', borderRadius: '0.625rem',
+              padding: '0.5rem', display: 'flex'
+            }}>
+              <BookOpen size={22} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>Semi-Auto GA — Subject Configuration</h3>
+              <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.85, marginTop: '2px' }}>
+                {totalFrozen} frozen slot{totalFrozen !== 1 ? 's' : ''} • {totalGaSlots} slot{totalGaSlots !== 1 ? 's' : ''} will be allocated by GA
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '1.25rem 1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
+
+          {/* Section 1: Frozen Subjects */}
+          {frozenSubjects.length > 0 && (
+            <div style={{ marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
+                <Lock size={14} color="#6366f1" />
+                <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>Frozen in Grid</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>{totalFrozen} slot{totalFrozen !== 1 ? 's' : ''}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                {frozenSubjects.map((s, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.625rem',
+                    padding: '0.5rem 0.75rem',
+                    background: s.type === 'Lab' ? 'rgba(245,158,11,0.06)' : 'rgba(79,70,229,0.04)',
+                    borderRadius: '0.5rem',
+                    border: `1px solid ${s.type === 'Lab' ? 'rgba(245,158,11,0.2)' : 'rgba(79,70,229,0.12)'}`
+                  }}>
+                    <div style={{
+                      width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                      background: s.type === 'Lab' ? '#fef9c3' : 'rgba(79,70,229,0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {s.type === 'Lab' ? <FlaskConical size={12} color="#92400e" /> : <BookOpen size={12} color="#4f46e5" />}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
+                    </div>
+                    <div style={{
+                      flexShrink: 0, fontWeight: 700, fontSize: '0.8rem',
+                      background: 'rgba(16,185,129,0.12)', color: '#059669',
+                      borderRadius: '0.375rem', padding: '2px 8px'
+                    }}>
+                      🔒 ×{s.count}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          {frozenSubjects.length > 0 && gaSubjects.length > 0 && (
+            <div style={{ borderTop: '1px dashed var(--border, #e5e7eb)', margin: '0.75rem 0' }} />
+          )}
+
+          {/* Section 2: GA Allocation with Frequency Inputs */}
+          {gaSubjects.length > 0 && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Play size={14} color="#f59e0b" />
+                <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>GA Will Allocate</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Set weekly frequency per subject</span>
+              </div>
+              <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0 0 0.625rem 0' }}>
+                Adjust how many times each subject appears in the grid per week. Labs count as 1 block (3 consecutive periods).
+              </p>
+
+              {/* Table header */}
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr auto auto',
+                gap: '0.5rem', padding: '0.375rem 0.75rem',
+                background: 'var(--bg-main, #f8fafc)', borderRadius: '0.5rem 0.5rem 0 0',
+                borderBottom: '1px solid var(--border, #e5e7eb)'
+              }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Subject / Faculty</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', width: '50px' }}>Type</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', width: '70px' }}>Freq/Wk</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '220px', overflowY: 'auto' }}>
+                {gaSubjects.map((s, i) => {
+                  const key = `${s.name}||${s.faculty}`;
+                  return (
+                    <div key={i} style={{
+                      display: 'grid', gridTemplateColumns: '1fr auto auto',
+                      gap: '0.5rem', alignItems: 'center',
+                      padding: '0.5rem 0.75rem',
+                      background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)',
+                      borderBottom: '1px solid rgba(0,0,0,0.04)'
+                    }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {s.name}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{s.faculty}</div>
+                      </div>
+                      <div style={{
+                        width: '50px', textAlign: 'center',
+                        fontSize: '0.68rem', fontWeight: 600,
+                        color: s.type === 'Lab' ? '#92400e' : '#4f46e5',
+                        background: s.type === 'Lab' ? '#fef3c7' : 'rgba(79,70,229,0.08)',
+                        borderRadius: '0.375rem', padding: '2px 0'
+                      }}>
+                        {s.type === 'Lab' ? '🧪 Lab' : '📘 Theory'}
+                      </div>
+                      <div style={{ width: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                        <button
+                          onClick={() => updateFreq(key, (frequencies[key] || 0) - 1)}
+                          style={{
+                            width: '22px', height: '22px', border: '1px solid var(--border, #d1d5db)',
+                            borderRadius: '4px', background: 'transparent', cursor: 'pointer',
+                            fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >−</button>
+                        <input
+                          type="number"
+                          min="0" max="8"
+                          value={frequencies[key] ?? s.frequency}
+                          onChange={(e) => updateFreq(key, e.target.value)}
+                          style={{
+                            width: '32px', height: '24px', textAlign: 'center',
+                            border: '1.5px solid var(--primary, #4f46e5)', borderRadius: '0.375rem',
+                            fontWeight: 700, fontSize: '0.82rem', color: 'var(--primary, #4f46e5)',
+                            outline: 'none', background: 'rgba(79,70,229,0.04)'
+                          }}
+                        />
+                        <button
+                          onClick={() => updateFreq(key, (frequencies[key] || 0) + 1)}
+                          style={{
+                            width: '22px', height: '22px', border: '1px solid var(--border, #d1d5db)',
+                            borderRadius: '4px', background: 'transparent', cursor: 'pointer',
+                            fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Summary banner */}
+          <div style={{
+            marginTop: '1rem', padding: '0.625rem 0.875rem',
+            background: 'rgba(234,179,8,0.1)', borderRadius: '0.625rem',
+            border: '1px solid rgba(234,179,8,0.3)', fontSize: '0.78rem', color: '#92400e',
+            display: 'flex', gap: '0.5rem', alignItems: 'flex-start'
+          }}>
+            <span style={{ fontSize: '1rem', lineHeight: 1 }}>⚡</span>
+            <span>
+              <strong>Semi-Auto GA</strong> will freeze <strong>{totalFrozen}</strong> existing slot{totalFrozen !== 1 ? 's' : ''} and
+              allocate <strong>{totalGaSlots}</strong> new slot{totalGaSlots !== 1 ? 's' : ''} using the Genetic Algorithm based on the frequencies above.
+            </span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          display: 'flex', gap: '0.75rem', padding: '1rem 1.5rem',
+          borderTop: '1px solid var(--border, #e5e7eb)', justifyContent: 'flex-end'
+        }}>
+          <button
+            onClick={onCancel}
+            style={{
+              padding: '0.5rem 1.25rem', border: '1px solid var(--border, #d1d5db)',
+              borderRadius: '0.625rem', background: 'transparent', cursor: 'pointer',
+              fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-muted)'
+            }}
+          >Cancel</button>
+          <button
+            onClick={handleConfirm}
+            style={{
+              padding: '0.5rem 1.5rem',
+              background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+              border: 'none', borderRadius: '0.625rem', cursor: 'pointer',
+              fontWeight: 700, fontSize: '0.875rem', color: '#fff',
+              display: 'flex', alignItems: 'center', gap: '0.4rem',
+              boxShadow: '0 4px 12px rgba(79,70,229,0.35)'
+            }}
+          >
+            <Play size={15} /> Proceed with GA
+          </button>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes popIn {
+          from { opacity: 0; transform: scale(0.88) translateY(16px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+      `}</style>
+    </div>
+  );
+};
 
 const TimetableGrid = () => {
   const { sectionId } = useParams();
@@ -40,20 +293,21 @@ const TimetableGrid = () => {
   const [newItemName, setNewItemName] = useState('');
   const [newItemInstructor, setNewItemInstructor] = useState('');
 
-  useEffect(() => {
-    fetchGridData();
-  }, [sectionId]);
-
   const fetchGridData = async () => {
     try {
       const res = await api.get(`/admin/timetable/grid/${sectionId}`);
       setData(res.data);
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch grid data');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchGridData();
+  }, [sectionId]);
 
   const handleAutoGenerate = async () => {
     setIsGenerating(true);
@@ -105,7 +359,7 @@ const TimetableGrid = () => {
         schedule: data.timetable.schedule 
       });
       alert('Timetable saved!');
-    } catch (err) {
+    } catch {
       alert('Save failed');
     } finally {
       setIsSaving(false);
@@ -457,269 +711,13 @@ const TimetableGrid = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center h-96">Loading Designer...</div>;
-
-  /* ── Subject Summary Modal (with editable GA frequencies) ── */
-  const SubjectSummaryModal = () => {
-    if (!subjectSummary) return null;
-    const { frozenSubjects, gaSubjects, onConfirm, onCancel } = subjectSummary;
-    const [frequencies, setFrequencies] = React.useState(() => {
-      const init = {};
-      gaSubjects.forEach(s => {
-        const key = `${s.name}||${s.faculty}`;
-        init[key] = s.frequency;
-      });
-      return init;
-    });
-    const totalFrozen = frozenSubjects.reduce((s, x) => s + x.count, 0);
-    const totalGaSlots = Object.values(frequencies).reduce((s, v) => s + (parseInt(v) || 0), 0);
-
-    const updateFreq = (key, val) => {
-      const num = Math.max(0, Math.min(8, parseInt(val) || 0));
-      setFrequencies(prev => ({ ...prev, [key]: num }));
-    };
-
-    const handleConfirm = () => {
-      // Build subjectFrequencies map: subjectName -> frequency
-      const freqMap = {};
-      gaSubjects.forEach(s => {
-        const key = `${s.name}||${s.faculty}`;
-        freqMap[s.name] = frequencies[key] ?? s.frequency;
-      });
-      onConfirm(freqMap);
-    };
-
-    return (
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-      }}>
-        <div style={{
-          background: 'var(--bg-card, #fff)', borderRadius: '1.25rem',
-          boxShadow: '0 24px 60px rgba(0,0,0,0.25)', width: '100%', maxWidth: '620px',
-          overflow: 'hidden', animation: 'popIn 0.22s cubic-bezier(.175,.885,.32,1.275)'
-        }}>
-          {/* Header */}
-          <div style={{
-            background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-            padding: '1.25rem 1.5rem', color: '#fff'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                background: 'rgba(255,255,255,0.2)', borderRadius: '0.625rem',
-                padding: '0.5rem', display: 'flex'
-              }}>
-                <BookOpen size={22} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>Semi-Auto GA — Subject Configuration</h3>
-                <p style={{ margin: 0, fontSize: '0.78rem', opacity: 0.85, marginTop: '2px' }}>
-                  {totalFrozen} frozen slot{totalFrozen !== 1 ? 's' : ''} • {totalGaSlots} slot{totalGaSlots !== 1 ? 's' : ''} will be allocated by GA
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div style={{ padding: '1.25rem 1.5rem', maxHeight: '60vh', overflowY: 'auto' }}>
-
-            {/* Section 1: Frozen Subjects */}
-            {frozenSubjects.length > 0 && (
-              <div style={{ marginBottom: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.625rem' }}>
-                  <Lock size={14} color="#6366f1" />
-                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>Frozen in Grid</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>{totalFrozen} slot{totalFrozen !== 1 ? 's' : ''}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                  {frozenSubjects.map((s, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.625rem',
-                      padding: '0.5rem 0.75rem',
-                      background: s.type === 'Lab' ? 'rgba(245,158,11,0.06)' : 'rgba(79,70,229,0.04)',
-                      borderRadius: '0.5rem',
-                      border: `1px solid ${s.type === 'Lab' ? 'rgba(245,158,11,0.2)' : 'rgba(79,70,229,0.12)'}`
-                    }}>
-                      <div style={{
-                        width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
-                        background: s.type === 'Lab' ? '#fef9c3' : 'rgba(79,70,229,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}>
-                        {s.type === 'Lab' ? <FlaskConical size={12} color="#92400e" /> : <BookOpen size={12} color="#4f46e5" />}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.name}</div>
-                      </div>
-                      <div style={{
-                        flexShrink: 0, fontWeight: 700, fontSize: '0.8rem',
-                        background: 'rgba(16,185,129,0.12)', color: '#059669',
-                        borderRadius: '0.375rem', padding: '2px 8px'
-                      }}>
-                        🔒 ×{s.count}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Divider */}
-            {frozenSubjects.length > 0 && gaSubjects.length > 0 && (
-              <div style={{ borderTop: '1px dashed var(--border, #e5e7eb)', margin: '0.75rem 0' }} />
-            )}
-
-            {/* Section 2: GA Allocation with Frequency Inputs */}
-            {gaSubjects.length > 0 && (
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Play size={14} color="#f59e0b" />
-                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: 'var(--text-main)' }}>GA Will Allocate</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Set weekly frequency per subject</span>
-                </div>
-                <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '0 0 0.625rem 0' }}>
-                  Adjust how many times each subject appears in the grid per week. Labs count as 1 block (3 consecutive periods).
-                </p>
-
-                {/* Table header */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr auto auto',
-                  gap: '0.5rem', padding: '0.375rem 0.75rem',
-                  background: 'var(--bg-main, #f8fafc)', borderRadius: '0.5rem 0.5rem 0 0',
-                  borderBottom: '1px solid var(--border, #e5e7eb)'
-                }}>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Subject / Faculty</span>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', width: '50px' }}>Type</span>
-                  <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', textAlign: 'center', width: '70px' }}>Freq/Wk</span>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '220px', overflowY: 'auto' }}>
-                  {gaSubjects.map((s, i) => {
-                    const key = `${s.name}||${s.faculty}`;
-                    return (
-                      <div key={i} style={{
-                        display: 'grid', gridTemplateColumns: '1fr auto auto',
-                        gap: '0.5rem', alignItems: 'center',
-                        padding: '0.5rem 0.75rem',
-                        background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)',
-                        borderBottom: '1px solid rgba(0,0,0,0.04)'
-                      }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {s.name}
-                          </div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>{s.faculty}</div>
-                        </div>
-                        <div style={{
-                          width: '50px', textAlign: 'center',
-                          fontSize: '0.68rem', fontWeight: 600,
-                          color: s.type === 'Lab' ? '#92400e' : '#4f46e5',
-                          background: s.type === 'Lab' ? '#fef3c7' : 'rgba(79,70,229,0.08)',
-                          borderRadius: '0.375rem', padding: '2px 0'
-                        }}>
-                          {s.type === 'Lab' ? '🧪 Lab' : '📘 Theory'}
-                        </div>
-                        <div style={{ width: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
-                          <button
-                            onClick={() => updateFreq(key, (frequencies[key] || 0) - 1)}
-                            style={{
-                              width: '22px', height: '22px', border: '1px solid var(--border, #d1d5db)',
-                              borderRadius: '4px', background: 'transparent', cursor: 'pointer',
-                              fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}
-                          >−</button>
-                          <input
-                            type="number"
-                            min="0" max="8"
-                            value={frequencies[key] ?? s.frequency}
-                            onChange={(e) => updateFreq(key, e.target.value)}
-                            style={{
-                              width: '32px', height: '24px', textAlign: 'center',
-                              border: '1.5px solid var(--primary, #4f46e5)', borderRadius: '0.375rem',
-                              fontWeight: 700, fontSize: '0.82rem', color: 'var(--primary, #4f46e5)',
-                              outline: 'none', background: 'rgba(79,70,229,0.04)'
-                            }}
-                          />
-                          <button
-                            onClick={() => updateFreq(key, (frequencies[key] || 0) + 1)}
-                            style={{
-                              width: '22px', height: '22px', border: '1px solid var(--border, #d1d5db)',
-                              borderRadius: '4px', background: 'transparent', cursor: 'pointer',
-                              fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center'
-                            }}
-                          >+</button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Summary banner */}
-            <div style={{
-              marginTop: '1rem', padding: '0.625rem 0.875rem',
-              background: 'rgba(234,179,8,0.1)', borderRadius: '0.625rem',
-              border: '1px solid rgba(234,179,8,0.3)', fontSize: '0.78rem', color: '#92400e',
-              display: 'flex', gap: '0.5rem', alignItems: 'flex-start'
-            }}>
-              <span style={{ fontSize: '1rem', lineHeight: 1 }}>⚡</span>
-              <span>
-                <strong>Semi-Auto GA</strong> will freeze <strong>{totalFrozen}</strong> existing slot{totalFrozen !== 1 ? 's' : ''} and
-                allocate <strong>{totalGaSlots}</strong> new slot{totalGaSlots !== 1 ? 's' : ''} using the Genetic Algorithm based on the frequencies above.
-              </span>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div style={{
-            display: 'flex', gap: '0.75rem', padding: '1rem 1.5rem',
-            borderTop: '1px solid var(--border, #e5e7eb)', justifyContent: 'flex-end'
-          }}>
-            <button
-              onClick={onCancel}
-              style={{
-                padding: '0.5rem 1.25rem', border: '1px solid var(--border, #d1d5db)',
-                borderRadius: '0.625rem', background: 'transparent', cursor: 'pointer',
-                fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-muted)'
-              }}
-            >Cancel</button>
-            <button
-              onClick={handleConfirm}
-              style={{
-                padding: '0.5rem 1.5rem',
-                background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                border: 'none', borderRadius: '0.625rem', cursor: 'pointer',
-                fontWeight: 700, fontSize: '0.875rem', color: '#fff',
-                display: 'flex', alignItems: 'center', gap: '0.4rem',
-                boxShadow: '0 4px 12px rgba(79,70,229,0.35)'
-              }}
-            >
-              <Play size={15} /> Proceed with GA
-            </button>
-          </div>
-        </div>
-
-        <style>{`
-          @keyframes popIn {
-            from { opacity: 0; transform: scale(0.88) translateY(16px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-          }
-          input[type=number]::-webkit-inner-spin-button,
-          input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-          input[type=number] { -moz-appearance: textfield; }
-        `}</style>
-      </div>
-    );
-  };
   if (!data) return <div className="p-8 text-center">Error loading data. Please check mappings.</div>;
 
   const { section, days, periods, timetable, mappings, labMappings } = data;
 
   return (
     <div className="designer-page relative">
-      <SubjectSummaryModal />
+      {subjectSummary && <SubjectSummaryModal subjectSummary={subjectSummary} />}
       {isGenerating && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl">
           <div className="relative flex items-center justify-center w-24 h-24 mb-4">

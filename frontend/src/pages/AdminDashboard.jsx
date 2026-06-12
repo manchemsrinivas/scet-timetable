@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Layers, FlaskConical, CalendarDays, CheckCircle2, AlertCircle, Trash2, Plus, Download, Play, RefreshCw, Settings2, BookOpen } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Users, Layers, FlaskConical, CalendarDays, CheckCircle2, Trash2, Plus, Download, Play, RefreshCw, BookOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 
@@ -18,11 +18,7 @@ const AdminDashboard = () => {
     return 'submissions';
   };
 
-  const [activeTab, setActiveTab] = useState(getTabFromPath(location.pathname));
-  
-  useEffect(() => {
-    setActiveTab(getTabFromPath(location.pathname));
-  }, [location.pathname]);
+  const activeTab = getTabFromPath(location.pathname);
 
   const handleTabChange = (tabId) => {
     const pathMap = {
@@ -36,6 +32,7 @@ const AdminDashboard = () => {
     };
     navigate(pathMap[tabId] || '/admin');
   };
+
   const [data, setData] = useState({
     submissions: [],
     sections: [],
@@ -85,6 +82,18 @@ const AdminDashboard = () => {
     sortBy: 'default' // default, totalExp, priority
   });
 
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/admin/dashboard?department=${deptFilter}`);
+      setData(res.data);
+    } catch {
+      console.error('Failed to fetch dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubjectToggle = (submissionId, subjectName) => {
     setSelectedSubjects(prev => {
       const current = prev[submissionId] || [];
@@ -105,56 +114,61 @@ const AdminDashboard = () => {
       await api.post(`/admin/assign/${submissionId}`, { allottedSubjects });
       fetchDashboardData();
       alert('Subjects allotted and faculty approved successfully!');
-    } catch (err) {
+    } catch {
       alert('Failed to assign subjects');
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchDashboardData();
   }, [deptFilter]);
 
-  const fetchFacultySchedule = async (facultyId) => {
-    if (!facultyId) {
+  useEffect(() => {
+    if (!selectedFacultyId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFacultyScheduleData(null);
       return;
     }
-    try {
-      const res = await api.get(`/admin/faculty-timetable/${facultyId}`);
-      setFacultyScheduleData(res.data.schedule);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to fetch faculty timetable');
-    }
-  };
-
-  useEffect(() => {
-    if (selectedFacultyId) {
-      fetchFacultySchedule(selectedFacultyId);
-    }
+    let active = true;
+    const fetchFacultySchedule = async () => {
+      try {
+        const res = await api.get(`/admin/faculty-timetable/${selectedFacultyId}`);
+        if (active) {
+          setFacultyScheduleData(res.data.schedule);
+        }
+      } catch {
+        alert('Failed to fetch faculty timetable');
+      }
+    };
+    fetchFacultySchedule();
+    return () => {
+      active = false;
+    };
   }, [selectedFacultyId]);
 
-  const fetchVenueSchedule = async (venueName) => {
-    if (!venueName) {
+  useEffect(() => {
+    if (!selectedVenueName) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVenueScheduleData(null);
       return;
     }
-    try {
-      const res = await api.get(`/admin/venue-timetable/${encodeURIComponent(venueName)}`);
-      setVenueScheduleData(res.data.schedule);
-    } catch (err) {
-      console.error(err);
-      alert('Failed to fetch venue timetable');
-    }
-  };
-
-  useEffect(() => {
-    if (selectedVenueName) {
-      fetchVenueSchedule(selectedVenueName);
-    }
+    let active = true;
+    const fetchVenueSchedule = async () => {
+      try {
+        const res = await api.get(`/admin/venue-timetable/${encodeURIComponent(selectedVenueName)}`);
+        if (active) {
+          setVenueScheduleData(res.data.schedule);
+        }
+      } catch {
+        alert('Failed to fetch venue timetable');
+      }
+    };
+    fetchVenueSchedule();
+    return () => {
+      active = false;
+    };
   }, [selectedVenueName]);
-
-
 
   const exportFacultyCSV = () => {
     if (!facultyScheduleData) return;
@@ -195,27 +209,14 @@ const AdminDashboard = () => {
     link.click();
   };
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/admin/dashboard?department=${deptFilter}`);
-      setData(res.data);
-    } catch (err) {
-      console.error('Failed to fetch dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id, type) => {
     if (!confirm('Are you sure you want to remove this?')) return;
     try {
       const targetId = typeof id === 'object' ? id._id : id;
       await api.post(`/admin/${type}/delete/${targetId}`);
       fetchDashboardData();
-    } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete: ' + (err.response?.data?.error || 'Server Error'));
+    } catch {
+      alert('Failed to delete');
     }
   };
 
@@ -224,23 +225,9 @@ const AdminDashboard = () => {
     try {
       await api.post(`/admin/submissions/delete/${id}`);
       fetchDashboardData();
-    } catch (err) {
+    } catch {
       alert('Failed to delete submission');
     }
-  };
-
-  const handleApprove = async (id) => {
-    try {
-      await api.post(`/admin/approve/${id}`);
-      fetchDashboardData();
-    } catch (err) {
-      alert('Approval failed');
-    }
-  };
-
-  const handleStartAssign = (facultyId) => {
-    setMappingForm({ ...mappingForm, facultyId });
-    setActiveTab('mapping');
   };
 
   const handleMappingSubmit = async (e) => {
@@ -268,7 +255,7 @@ const AdminDashboard = () => {
       setSectionForm({ name: '', department: '' });
       fetchDashboardData();
       alert('Section created successfully');
-    } catch (err) {
+    } catch {
       alert('Failed to create section');
     }
   };
@@ -283,7 +270,7 @@ const AdminDashboard = () => {
       setLabForm({ name: '', department: '' });
       fetchDashboardData();
       alert('Lab created successfully');
-    } catch (err) {
+    } catch {
       alert('Failed to create lab');
     }
   };
@@ -306,7 +293,7 @@ const AdminDashboard = () => {
       setLabMappingForm({ facultyId: '', labId: '', sectionId: '', labVenue: '', customLabVenue: '' });
       fetchDashboardData();
       alert('Lab mapping created successfully');
-    } catch (err) {
+    } catch {
       alert('Failed to create lab mapping');
     }
   };
@@ -347,7 +334,7 @@ const AdminDashboard = () => {
             style={{ width: '200px' }}
           >
             <option value="All">All Departments</option>
-            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
+            {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA'].map(d => <option key={d} value={d}>{d}</option>)}
           </select>
           <button className="btn btn-outline" onClick={fetchDashboardData}>
             <RefreshCw size={16} />
@@ -557,7 +544,7 @@ const AdminDashboard = () => {
                     onChange={(e) => setSectionForm({...sectionForm, department: e.target.value})}
                   >
                     <option value="">Select Department...</option>
-                    {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
+                    {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA'].map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <button className="btn btn-primary w-full" type="submit">Create Section</button>
@@ -691,7 +678,7 @@ const AdminDashboard = () => {
                       onChange={(e) => setLabForm({...labForm, department: e.target.value})}
                     >
                       <option value="">Select Department...</option>
-                      {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
+                      {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA'].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   </div>
                   <button className="btn btn-primary w-full">Create Lab</button>

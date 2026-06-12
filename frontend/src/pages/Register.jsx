@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
@@ -124,7 +124,7 @@ const Register = () => {
                   value={formData.department}
                   onChange={e => setFormData({...formData, department: e.target.value})}
                 >
-                  {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'].map(d => <option key={d} value={d}>{d}</option>)}
+                  {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import api from './api/axios';
 import Sidebar from './components/Sidebar';
@@ -15,15 +15,11 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
   const checkAuth = async () => {
     try {
       const res = await api.get('/auth/me');
       setUser(res.data.user);
-    } catch (err) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -34,10 +30,15 @@ const App = () => {
     try {
       await api.post('/auth/logout');
       setUser(null);
-    } catch (err) {
+    } catch {
       console.error('Logout failed');
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    checkAuth();
+  }, []);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;

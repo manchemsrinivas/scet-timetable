@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { CalendarDays, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { FileText, AlertCircle } from 'lucide-react';
 import api from '../api/axios';
 
 const FacultyDashboard = () => {
@@ -38,20 +38,21 @@ const FacultyDashboard = () => {
   };
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  useEffect(() => {
-    fetchFacultyData();
-  }, []);
-
   const fetchFacultyData = async () => {
     try {
       const res = await api.get('/faculty/dashboard');
       setData(res.data);
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch faculty dashboard data');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchFacultyData();
+  }, []);
 
   const handleWillingnessSubmit = async (e) => {
     e.preventDefault();
@@ -74,7 +75,7 @@ const FacultyDashboard = () => {
       });
       setShowForm(false);
       fetchFacultyData(); // Refresh data to show pending status
-    } catch (err) {
+    } catch {
       console.error('Failed to submit willingness form');
       alert('Error submitting form');
     } finally {

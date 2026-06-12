@@ -6,7 +6,7 @@ const SectionSchema = new mongoose.Schema({
   department: {
     type: String,
     required: true,
-    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA']
+    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA']
   },
   createdAt: { type: Date, default: Date.now }
 });

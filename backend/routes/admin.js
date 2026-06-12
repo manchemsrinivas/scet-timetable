@@ -20,21 +20,23 @@ const ensureAdmin = (req, res, next) => {
 // Admin Dashboard Data
 router.get('/dashboard', ensureAdmin, async (req, res) => {
     try {
-        const { department } = req.query;
+        const adminDept = req.session.user.department;
+        const targetDept = adminDept || req.query.department;
+
         let query = {};
-        if (department && department !== 'All') {
-            query.department = department;
+        if (targetDept && targetDept !== 'All') {
+            query.department = targetDept;
         }
 
         const submissions = await Willingness.find(query).populate('faculty', 'name email');
-        const sections = await Section.find(department && department !== 'All' ? { department } : {});
+        const sections = await Section.find(targetDept && targetDept !== 'All' ? { department: targetDept } : {});
         
-        const mappings = await Mapping.find(department && department !== 'All' ? { department } : {})
+        const mappings = await Mapping.find(targetDept && targetDept !== 'All' ? { department: targetDept } : {})
             .populate('faculty', 'name')
             .populate('section', 'name');
             
-        const labs = await Lab.find(department && department !== 'All' ? { department } : {});
-        const labMappings = await LabMapping.find(department && department !== 'All' ? { department } : {})
+        const labs = await Lab.find(targetDept && targetDept !== 'All' ? { department: targetDept } : {});
+        const labMappings = await LabMapping.find(targetDept && targetDept !== 'All' ? { department: targetDept } : {})
             .populate('faculty', 'name')
             .populate('lab', 'name')
             .populate('section', 'name');
@@ -42,7 +44,7 @@ router.get('/dashboard', ensureAdmin, async (req, res) => {
         const approvedFaculty = await Willingness.find({ ...query, status: 'Approved' }).populate('faculty', 'name');
         
         // Get unique venues
-        const venues = await LabMapping.distinct('labVenue', department !== 'All' ? { department } : {});
+        const venues = await LabMapping.distinct('labVenue', targetDept && targetDept !== 'All' ? { department: targetDept } : {});
 
         res.json({ 
             submissions, 
@@ -52,7 +54,7 @@ router.get('/dashboard', ensureAdmin, async (req, res) => {
             labMappings,
             approvedFaculty,
             venues,
-            selectedDept: department || 'All' 
+            selectedDept: targetDept || 'All' 
         });
     } catch (err) {
         console.error(err);
@@ -65,6 +67,11 @@ router.get('/timetable/grid/:sectionId', ensureAdmin, async (req, res) => {
     try {
         const section = await Section.findById(req.params.sectionId);
         if (!section) return res.status(404).json({ error: 'Section not found.' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized access to this section\'s timetable.' });
+        }
 
         const mappings = await Mapping.find({ section: req.params.sectionId }).populate('faculty', 'name');
         const labMappings = await LabMapping.find({ section: req.params.sectionId })
@@ -91,6 +98,10 @@ router.get('/timetable/grid/:sectionId', ensureAdmin, async (req, res) => {
 router.post('/sections', ensureAdmin, async (req, res) => {
     try {
         const { name, department } = req.body;
+        const adminDept = req.session.user.department;
+        if (adminDept && department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to add section for this department.' });
+        }
         const section = new Section({ name, department });
         await section.save();
         res.json({ success: true, section });
@@ -104,6 +115,10 @@ router.post('/sections', ensureAdmin, async (req, res) => {
 router.post('/sections/bulk', ensureAdmin, async (req, res) => {
     try {
         const { department, count } = req.body;
+        const adminDept = req.session.user.department;
+        if (adminDept && department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to generate sections for this department.' });
+        }
         const num = parseInt(count);
         if (!num || num < 1) return res.status(400).json({ success: false, error: 'Invalid count' });
 
@@ -126,6 +141,13 @@ router.post('/sections/bulk', ensureAdmin, async (req, res) => {
 // Delete Section
 router.post('/sections/delete/:id', ensureAdmin, async (req, res) => {
     try {
+        const section = await Section.findById(req.params.id);
+        if (!section) return res.status(404).json({ success: false, error: 'Section not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to delete this section.' });
+        }
         await Section.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Section removed' });
     } catch (err) {
@@ -138,6 +160,10 @@ router.post('/sections/delete/:id', ensureAdmin, async (req, res) => {
 router.post('/labs', ensureAdmin, async (req, res) => {
     try {
         const { name, department } = req.body;
+        const adminDept = req.session.user.department;
+        if (adminDept && department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to add lab for this department.' });
+        }
         const lab = new Lab({ name, department });
         await lab.save();
         res.json({ success: true, lab });
@@ -150,6 +176,13 @@ router.post('/labs', ensureAdmin, async (req, res) => {
 // Delete Lab
 router.post('/labs/delete/:id', ensureAdmin, async (req, res) => {
     try {
+        const lab = await Lab.findById(req.params.id);
+        if (!lab) return res.status(404).json({ success: false, error: 'Lab not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && lab.department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to delete this lab.' });
+        }
         await Lab.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Lab removed' });
     } catch (err) {
@@ -162,6 +195,13 @@ router.post('/labs/delete/:id', ensureAdmin, async (req, res) => {
 router.post('/mappings', ensureAdmin, async (req, res) => {
     try {
         const { facultyId, subjectName, sectionId, department } = req.body;
+        const adminDept = req.session.user.department;
+
+        const section = await Section.findById(sectionId);
+        if (!section) return res.status(404).json({ error: 'Section not found' });
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to assign mapping to this section.' });
+        }
         
         // Check if already exists
         const exists = await Mapping.findOne({ faculty: facultyId, subjectName, section: sectionId });
@@ -169,6 +209,9 @@ router.post('/mappings', ensureAdmin, async (req, res) => {
 
         const willingness = await Willingness.findOne({ faculty: facultyId });
         if (!willingness) return res.status(404).json({ error: 'Faculty willingness not found' });
+        if (adminDept && willingness.department !== adminDept) {
+            return res.status(403).json({ error: 'Faculty is not in your department.' });
+        }
 
         // Verify subject is in allotted list (optional but good)
         if (!willingness.allottedSubjects.includes(subjectName)) {
@@ -179,7 +222,7 @@ router.post('/mappings', ensureAdmin, async (req, res) => {
             faculty: facultyId,
             subjectName,
             section: sectionId,
-            department: department || willingness.department
+            department: adminDept || department || willingness.department
         });
         await mapping.save();
         res.json({ success: true, mapping });
@@ -192,6 +235,13 @@ router.post('/mappings', ensureAdmin, async (req, res) => {
 // Delete Mapping
 router.post('/mappings/delete/:id', ensureAdmin, async (req, res) => {
     try {
+        const mapping = await Mapping.findById(req.params.id);
+        if (!mapping) return res.status(404).json({ success: false, error: 'Mapping not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && mapping.department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to delete this mapping.' });
+        }
         await Mapping.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Mapping removed' });
     } catch (err) {
@@ -204,7 +254,21 @@ router.post('/mappings/delete/:id', ensureAdmin, async (req, res) => {
 router.post('/lab-mappings', ensureAdmin, async (req, res) => {
     try {
         const { facultyId, labId, sectionId, department, labVenue } = req.body;
-        const mapping = new LabMapping({ faculty: facultyId, lab: labId, section: sectionId, department, labVenue });
+        const adminDept = req.session.user.department;
+
+        const section = await Section.findById(sectionId);
+        if (!section) return res.status(404).json({ error: 'Section not found' });
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to assign lab mapping to this section.' });
+        }
+
+        const lab = await Lab.findById(labId);
+        if (!lab) return res.status(404).json({ error: 'Lab not found' });
+        if (adminDept && lab.department !== adminDept) {
+            return res.status(403).json({ error: 'Lab does not belong to your department.' });
+        }
+
+        const mapping = new LabMapping({ faculty: facultyId, lab: labId, section: sectionId, department: adminDept || department || lab.department, labVenue });
         await mapping.save();
         res.json({ success: true, mapping });
     } catch (err) {
@@ -216,6 +280,13 @@ router.post('/lab-mappings', ensureAdmin, async (req, res) => {
 // Delete Lab Mapping
 router.post('/lab-mappings/delete/:id', ensureAdmin, async (req, res) => {
     try {
+        const mapping = await LabMapping.findById(req.params.id);
+        if (!mapping) return res.status(404).json({ success: false, error: 'Lab mapping not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && mapping.department !== adminDept) {
+            return res.status(403).json({ success: false, error: 'Unauthorized to delete this lab mapping.' });
+        }
         await LabMapping.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Lab assignment removed' });
     } catch (err) {
@@ -227,7 +298,16 @@ router.post('/lab-mappings/delete/:id', ensureAdmin, async (req, res) => {
 // Approve submission
 router.post('/approve/:id', ensureAdmin, async (req, res) => {
     try {
-        await Willingness.findByIdAndUpdate(req.params.id, { status: 'Approved' });
+        const willingness = await Willingness.findById(req.params.id);
+        if (!willingness) return res.status(404).json({ error: 'Submission not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && willingness.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to approve submission for this department.' });
+        }
+
+        willingness.status = 'Approved';
+        await willingness.save();
         res.json({ success: true, message: 'Submission approved successfully' });
     } catch (err) {
         console.error(err);
@@ -239,8 +319,18 @@ router.post('/approve/:id', ensureAdmin, async (req, res) => {
 router.post('/assign/:id', ensureAdmin, async (req, res) => {
     try {
         const { allottedSubjects } = req.body;
+        const willingness = await Willingness.findById(req.params.id);
+        if (!willingness) return res.status(404).json({ error: 'Submission not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && willingness.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to assign subjects for this department.' });
+        }
+
         let subjectsArray = Array.isArray(allottedSubjects) ? allottedSubjects : [allottedSubjects];
-        await Willingness.findByIdAndUpdate(req.params.id, { allottedSubjects: subjectsArray, status: 'Approved' });
+        willingness.allottedSubjects = subjectsArray;
+        willingness.status = 'Approved';
+        await willingness.save();
         res.json({ success: true, message: 'Subjects assigned successfully' });
     } catch (err) {
         console.error(err);
@@ -344,6 +434,14 @@ router.post('/timetable/auto-generate', ensureAdmin, async (req, res) => {
         const { sectionId, force, generations, populationSize, mutationRate, weeklySlotsPerSubject, days, slotsPerDay, firstSlotAllDepartmentFaculty } = req.body || {};
         if (!sectionId) return res.status(400).json({ error: 'sectionId is required.' });
 
+        const section = await Section.findById(sectionId);
+        if (!section) return res.status(404).json({ error: 'Section not found.' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to generate timetable for this section.' });
+        }
+
         if (!force) {
             const check = await checkLabVenueAvailability(sectionId, false);
             if (!check.ok) {
@@ -392,6 +490,11 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
 
         const section = await Section.findById(sectionId);
         if (!section) return res.status(404).json({ error: 'Section not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to generate timetable for this section.' });
+        }
 
         if (!force && !skipLabs) {
             const check = await checkLabVenueAvailability(sectionId, true);
@@ -520,9 +623,12 @@ router.post('/timetable/semi-auto-generate', ensureAdmin, async (req, res) => {
 router.post('/timetable/auto-generate-department', ensureAdmin, async (req, res) => {
     try {
         const { department, generations, populationSize, weeklySlotsPerSubject, days, slotsPerDay, firstSlotAllDepartmentFaculty } = req.body || {};
-        if (!department || department === 'All') return res.status(400).json({ error: 'Specific department required.' });
+        const adminDept = req.session.user.department;
+        const targetDept = adminDept || department;
 
-        const problem = await buildGaProblemForDepartment(department, { 
+        if (!targetDept || targetDept === 'All') return res.status(400).json({ error: 'Specific department required.' });
+
+        const problem = await buildGaProblemForDepartment(targetDept, { 
             weeklySlotsPerSubject: weeklySlotsPerSubject || 5, 
             days: 6, 
             slotsPerDay: 7, 
@@ -555,6 +661,11 @@ router.post('/timetable/save', ensureAdmin, async (req, res) => {
         const { sectionId, schedule } = req.body;
         const section = await Section.findById(sectionId);
         if (!section) return res.status(404).json({ error: 'Section not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && section.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to save timetable for this section.' });
+        }
         await Timetable.findOneAndUpdate({ section: sectionId }, { schedule, department: section.department }, { upsert: true });
         res.json({ success: true, message: 'Timetable saved successfully' });
     } catch (err) {
@@ -566,6 +677,14 @@ router.post('/timetable/save', ensureAdmin, async (req, res) => {
 router.get('/faculty-timetable/:facultyId', ensureAdmin, async (req, res) => {
     try {
         const { facultyId } = req.params;
+        const facultyUser = await User.findById(facultyId);
+        if (!facultyUser) return res.status(404).json({ error: 'Faculty not found.' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && facultyUser.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to view timetable for faculty of another department.' });
+        }
+
         const timetables = await Timetable.find().populate('section', 'name department');
         
         let facultySchedule = [];
@@ -678,6 +797,14 @@ router.get('/venue-timetable/:venueName', ensureAdmin, async (req, res) => {
 // Delete Submission
 router.post('/submissions/delete/:id', ensureAdmin, async (req, res) => {
     try {
+        const willingness = await Willingness.findById(req.params.id);
+        if (!willingness) return res.status(404).json({ error: 'Submission not found' });
+
+        const adminDept = req.session.user.department;
+        if (adminDept && willingness.department !== adminDept) {
+            return res.status(403).json({ error: 'Unauthorized to delete submission of another department.' });
+        }
+
         await Willingness.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Submission removed successfully' });
     } catch (err) {
@@ -690,7 +817,9 @@ router.post('/submissions/delete/:id', ensureAdmin, async (req, res) => {
 router.get('/analytics/heatmap', ensureAdmin, async (req, res) => {
   try {
     const { department } = req.query;
-    const query = department && department !== 'All' ? { department } : {};
+    const adminDept = req.session.user.department;
+    const targetDept = adminDept || department;
+    const query = targetDept && targetDept !== 'All' ? { department: targetDept } : {};
     
     const timetables = await Timetable.find(query);
     const daysArr = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

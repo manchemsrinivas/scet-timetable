@@ -10,7 +10,7 @@ router.post('/register', async (req, res) => {
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ error: 'Email already registered' });
 
-        user = new User({ name, email, password, role, department: role === 'faculty' ? department : undefined });
+        user = new User({ name, email, password, role, department });
         await user.save();
         res.json({ success: true, message: 'Registration successful' });
     } catch (err) {

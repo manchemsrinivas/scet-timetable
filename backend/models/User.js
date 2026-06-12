@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['admin', 'faculty'], default: 'faculty' },
-    department: { type: String, enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA'], required: function() { return this.role === 'faculty'; } }
+    department: { type: String, enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'S&H', 'MBA', 'CSBS', 'CSE-2', 'AIML', 'MCA'], required: function() { return this.role === 'faculty'; } }
 });
 
 UserSchema.pre('save', async function(next) {

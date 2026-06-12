@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -6,8 +5,7 @@ import {
   Layers, 
   FlaskConical, 
   CalendarDays, 
-  LogOut,
-  ChevronRight
+  LogOut
 } from 'lucide-react';
 
 const Sidebar = ({ user, onLogout }) => {
